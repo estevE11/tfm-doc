@@ -1,0 +1,35 @@
+# LaTeX generated files
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.bbl
+*.blg
+*.nav
+*.snm
+*.vrb
+
+# Minted package output
+_minted*/
+
+# Compiled PDFs (uncomment if you want to track PDFs)
+# *.pdf
+
+# macOS
+.DS_Store
+
+# Editor directories
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temp files
+*~
+tmp/
+temp/

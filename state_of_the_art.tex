@@ -1,0 +1,75 @@
+This chapter surveys the scientific and technical background that motivates analysis of spontaneous speech with deep multimodal models in neurodegenerative disease.
+The discussion follows the structure of recent surveys and challenge-led benchmarking in speech-based cognitive assessment~\cite{ding2024speechsurvey}, but it is organised around the specific threads that underpin the companion contribution developed in this thesis~\cite{esteve2025speechadppa}: pathology-aware biomarker estimation from voice, differential diagnosis of primary progressive aphasia (PPA), cross-lingual dataset gaps, self-supervised acoustic encoders paired with language-model text encoders, fusion architectures that align modalities in time, and the complementary role of handcrafted paralinguistic descriptors.
+Throughout, emphasis is placed on results and modelling trends that are reproducible on public benchmarks---notably the Alzheimer's Dementia Recognition through Spontaneous Speech Only (\textsc{ADReSS}o) corpus associated with the challenge formulation of Luz et al.~\cite{luz2021adresso}---and on how those trends inform deployment on clinically curated cohorts such as the Sant Pau Initiative on Neurodegeneration (SPIN)~\cite{alcolea2019spin}.
+
+\subsection{Biological motivation: amyloid pathology and clinically overlapping syndromes}
+
+Accumulation of amyloid-$\beta$ (\textsc{A}$\beta$) is a core pathophysiological substrate in Alzheimer's disease (AD) research and underpins current therapeutic strategies that lean on early biological identification of at-risk individuals~\cite{hardy1992amyloid}.
+Confirmatory assessment traditionally relies on cerebrospinal fluid assays or molecular neuroimaging; although accurate, these modalities are expensive, invasive, or capacity constrained, which contributes to delayed detection relative to symptom onset and limits scalable screening in population settings.
+
+Parallel to biomarker science, differential diagnosis at the syndrome level remains difficult because language and executive deficits arise across neurodegenerative aetiologies with partially overlapping phenotypes.
+PPA exemplifies this tension: it is defined as a progressive disorder of language as the principal complaint and functional limitation, and contemporary consensus schemes stratify variants according to the dominant cognitive-linguistic profile~\cite{gorno2011ppa,gorno2015ppa}.
+The non-fluent/agrammatic (\textit{nfv}), semantic (\textit{sv}), and logopenic (\textit{lv}) variants differ in fluency, grammatical competence, lexical--semantic knowledge, and repetition/spelling-span signatures; importantly, variant labels provide clinically actionable hypotheses about underlying proteinopathy patterns even though symptoms can blur across boundaries~\cite{elahi2017clinicopath}.
+From an engineering viewpoint, these clinical facts motivate pattern recognition systems that are sensitive to subtle temporal micro-structure of speech (planning pauses, articulatory slowing, reduced informational density) and to lexical--semantic content jointly---precisely the multimodal cues accessible from spontaneous picture descriptions or narrative tasks collected during routine assessments~\cite{lima2025communicationsmedicine}.
+
+\subsection{Spoken language as a scalable digital biomarker}
+
+Prospective clinicopathological studies and controlled biomarker programmes increasingly incorporate speech and language markers alongside imaging and fluid assays because voice can be acquired frequently, remotely, and at comparatively low marginal cost~\cite{rezaii2025voiceprints}.
+At the same time, evaluation methodology matters: speech measures can track syndrome severity and risk enrichment, yet population heterogeneity (education, dialect, comorbid hearing loss, task instructions) can inflate apparent effects unless modelling assumptions are carefully matched to sampling designs~\cite{lima2025communicationsmedicine}.
+
+Early computational work emphasised engineered linguistic descriptors extracted from transcripts (lexical diversity, syntactic complexity, idea density) and shallow acoustic statistics computed from short recordings of spontaneous speech to separate AD from healthy ageing~\cite{fraser2016linguistic}.
+These approaches demonstrated feasibility but often relied on manual transcription pipelines or handcrafted feature dictionaries whose coverage is incomplete for noisy clinical audio.
+More recent analyses revisit classical machine-learning baselines (random forests, support-vector machines) with richer descriptors and report uneven sensitivity depending on task elicitation and recording conditions~\cite{lima2025communicationsmedicine}; collectively, such studies argue that marker families carry predictive signal but that shallow decision boundaries under-use temporal dynamics present in the waveform~\cite{fristed2022leveraging,gabirondo2025speechbiomarkers,slegers2021connectedppa}.
+
+\subsection{From shallow classifiers to deep neural representations}
+
+Representation learning replaces brittle front-ends with hierarchical embeddings trained either supervised end-to-end or semi-supervised with objectives aligned to phonetic/lexical structure.
+In speech processing broadly, self-supervised pre-training of transformer acoustic models (wav2vec~2.0~\cite{baevski2020wav2vec}, HuBERT~\cite{hsu2021hubert}, WavLM~\cite{chen2022wavlm}) learns frame-level features transferable across languages and domains with comparatively modest labelled downstream data.
+Parallel advances in text modelling yield contextual token embeddings (BERT family~\cite{devlin2019bert}; lighter distilled variants such as DistilBERT~\cite{sanh2019distilbert}; modern long-context encoder-only architectures such as ModernBERT~\cite{warner2025modernbert}) that capture lexical semantics and local syntax when transcript hypotheses are available.
+
+Reviews oriented specifically at AD detection from speech highlight two robust tendencies~\cite{ding2024speechsurvey}: deep neural pipelines dominate leaderboard-style benchmarks when adequate training partitions exist, and multimodal systems that consume both acoustic embeddings and text outperform either modality alone when transcripts are informative enough for alignment~\cite{ding2024speechsurvey}.
+These observations motivate architectures that treat spontaneous speech as \emph{tightly coupled} audio--text sequences rather than as isolated vectors~\cite{macoir2025rethinkingppa}.
+
+\subsection{Benchmark challenges and public corpora}
+
+Community challenges accelerated reproducible comparison by freezing splits and evaluation protocols for cognitive impairment detection from speech-only submissions~\cite{luz2021adresso}.
+The \textsc{ADReSS}o subset derived from the DementiaBank Pitt corpus of picture descriptions remains the de facto English benchmark for Alzheimer's dementia versus healthy control discrimination under matched recording conditions; numerous challenge systems established competitive baselines~\cite{syed2021muetrmit}, and subsequent work continues to extend feature attribution and model explanations~\cite{ntampakis2025neuroxvocal}.
+
+However, performance on English benchmarks does not trivially transfer to other languages: morphology, prosodic norms, and clinician elicitation protocols differ, and labelled neurodegeneration cohorts at scale remain comparatively scarce outside a handful of reference centres.
+Initiatives such as SPIN address biomarker discovery and validation by assembling multicentre observational data spanning genetics, imaging, fluid markers, and structured cognitive assessments~\cite{alcolea2019spin}; subsets incorporating spontaneous speech tasks tied to standard batteries (for example picture-description prompts compatible with the Western Aphasia Battery~\cite{kertesz1982wab}) enable language-specific baselines that complement English challenge corpora.
+
+Spanish-focused clinical studies demonstrate that machine-learning models incorporating language-aware descriptors can achieve strong discrimination between PPA variants~\cite{matias2019machineppa}, while recent bilingual analyses underscore that acoustic models may retain utility even when patients produce speech in a non-dominant language, whereas lexical models become comparatively brittle---a caution for multimodal pipelines deployed in multilingual clinics~\cite{pugalenthi2024bilingualppa}.
+
+\subsection{Automatic differentiation of PPA variants from connected speech}
+
+Because syndromic overlap complicates visual inspection alone, quantitative speech analyses seek markers that track breakdown profiles hypothesised by neurolinguistic models: reduced speech rate and grammatical complexity in \textit{nfvPPA}; lexical retrieval failures and semantic thinning in \textit{svPPA}; hesitation and phonological loop limitations with spared grammar in \textit{lvPPA}~\cite{gorno2011ppa}.
+
+Empirical studies highlight pause structure, filler usage, lexical diversity, and discourse coherence metrics as discriminative at group level~\cite{cho2022lexical}, while articulatory tempo measures help separate non-fluent from fluent variants~\cite{cordella2017articulation,haley2021speechmetrics}.
+At the intersection with amyloid biology, connected speech features associate with cortical amyloid burden within PPA cohorts~\cite{slegers2021connectedppa}, reinforcing the notion that speech captures not only syndrome labels but correlates of underlying pathology---similar in spirit to speech-only screening models targeting amyloid positivity~\cite{fristed2022leveraging,gabirondo2025speechbiomarkers}.
+
+Recent proof-of-concept studies escalate modelling complexity: large language models combined with curated linguistic measurements attain high classification accuracy in retrospective cohorts~\cite{rezaii2024ppallm}, whereas neural architectures trained jointly on acoustic and linguistic embeddings yield competitive multi-class accuracy relative to expert benchmarks~\cite{themistocleous2021automatic}.
+Nevertheless, models remain sensitive to sample size and label noise; moreover, cross-cohort validation across accents and tasks remains an open engineering constraint~\cite{nevler2019validated}.
+
+\subsection{Multimodal fusion: pooling, cross-attention, and temporal alignment}
+
+Multimodal classifiers must reconcile wildly different sampling rates: acoustic frames at millisecond resolution versus word or sub-word tokens at comparatively coarse timestamps derived from automatic speech recognition~\cite{ding2024speechsurvey}.
+Early fusion concatenates embeddings after temporal pooling; intermediate fusion stacks modalities into sequences processed by self-attention (multi-head attention pooling aggregates variable-length sequences into fixed vectors); late fusion retains modality-specific encoders until decision layers~\cite{esteve2025speechadppa}.
+
+Orthogonal to pooling choices, \emph{cross-modal alignment} seeks to reduce leakage between mis-synchronised streams---for instance when silences precede lexical onsets or when patients produce lengthened syllables spanning multiple phones~\cite{ortiz2025cognialign}.
+The CogniAlign architecture exemplifies word-level alignment between acoustic frames and textual tokens before gated cross-attention refinement~\cite{ortiz2025cognialign}; intuitively, synchronisation encourages the network to allocate attention to co-occurring acoustic evidence (jitter, spectral tilt shifts, lengthened closures) and lexical hypotheses rather than to incidental nuisance correlates.
+
+Independent multimodal systems repurposed from speaker and emotion modelling demonstrate that competitive fusion architectures transfer across paralinguistic tasks when augmented with domain regularisation~\cite{naini2025interspeechser}; this lineage motivates evaluating robust encoder stacks originally optimised on emotion corpora when ported to clinical speech~\cite{esteve2025speechadppa}.
+
+\subsection{Handcrafted acoustic descriptors alongside learned embeddings}
+
+Despite the strength of self-supervised waveform encoders, clinically interpretable descriptors remain attractive because they tie predictions to measurable articulatory and phonatory parameters (pause histograms, intensity envelopes, fundamental-frequency variation, shimmer/jitter, harmonics-to-noise ratio, spectral moments, formant tracks, cepstral coefficients).
+Pause-oriented statistics repeatedly emerge as salient in cognitive decline~\cite{imre2022temporal,zheng2024survey}; voice-quality perturbations may track neurogenic speech motor control deficits~\cite{rezaii2025voiceprints}.
+
+Open-source dementia-speech pipelines demonstrate competitive accuracy when coupling classical descriptors with modern backbones~\cite{ntampakis2025neuroxvocal}, supporting hybrid designs where auxiliary vectors augment attention pooling or concatenate immediately before classification~\cite{esteve2025speechadppa}.
+Whether explicit features complement latent embeddings in practice depends on architecture and task: pathology-linked cues sometimes persist outside generic waveform embeddings, whereas architectures with explicit alignment may subsume part of the prosodic signal~\cite{ortiz2025cognialign}.
+
+\subsection{Synthesis and positioning}
+
+Taken together, the literature supports three design commitments reflected in the methodological arc of this thesis~\cite{esteve2025speechadppa}: \emph{(i)} evaluate pathology-aware models where biology-grounded labels exist (for example \textsc{A}$\beta$ status alongside syndrome diagnoses), not solely dementia-vs-control proxies; \emph{(ii)} benchmark competing multimodal fusion philosophies using harmonised preprocessing on both an English reference corpus (\textsc{ADReSS}o) and a clinically curated Spanish-speaking subset aligned with SPIN; and \emph{(iii)} quantify when handcrafted acoustic descriptors remain complementary after state-of-the-art self-supervised acoustic encoding and explicit audio--text alignment~\cite{ding2024speechsurvey,ortiz2025cognialign,ntampakis2025neuroxvocal}.
+
+The following methodology chapter translates these commitments into concrete architectures, training protocols, and evaluation choices.

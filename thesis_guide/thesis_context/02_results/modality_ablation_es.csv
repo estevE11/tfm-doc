@@ -1,0 +1,13 @@
+model;dataset;cell;fusion;n_heads;modality;total_params;trainable_params;val_acc_mean;best_fold_acc;val_inference_ms_per_sample;test_acc;test_inference_ms_per_sample;note
+CogniAligned;adresso;A1_audio;audioonly;1;A;7284993;7284993;0,708456;0,823529;0,2983;0,661972;0,7426;
+CogniAligned;amyloid;A1_audio;audioonly;1;A;7284993;7284993;0,803500;0,878788;0,2149;;;
+CogniAligned;ppa;A1_audio;audioonly;1;A;7285507;7285507;0,682464;0,743590;0,1972;;;
+CogniAligned;adresso;A2_text;textonly;1;T;7284993;7284993;0,861141;0,969697;0,2030;0,802817;0,7180;
+CogniAligned;amyloid;A2_text;textonly;1;T;7284993;7284993;0,789544;0,861111;0,2251;;;
+CogniAligned;ppa;A2_text;textonly;1;T;7285507;7285507;0,693415;0,775000;0,1972;;;
+CogniAligned;adresso;A3_av_mean;mean;1;A+T;7284993;7284993;0,848061;0,939394;0,2029;0,788732;0,6182;
+CogniAligned;amyloid;A3_av_mean;mean;1;A+T;7284993;7284993;0,814551;0,852941;0,3186;;;
+CogniAligned;ppa;A3_av_mean;mean;1;A+T;7285507;7285507;0,698105;0,794872;0,2001;;;
+CogniAligned;adresso;A4_av_mean_af;mean;1;A+T+AF;7688193;7688193;0,866611;0,969697;0,2407;0,816901;0,6896;
+CogniAligned;amyloid;A4_av_mean_af;mean;1;A+T+AF;7688193;7688193;0,808837;0,852941;0,2772;;;
+CogniAligned;ppa;A4_av_mean_af;mean;1;A+T+AF;7688707;7688707;0,692849;0,743590;0,2293;;;

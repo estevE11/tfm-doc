@@ -1,0 +1,34 @@
+model;dataset;fusion;lr;total_params;trainable_params;inference_ms_per_sample;val_acc_mean;best_fold_acc;test_acc;note
+CogniAligned;ADReSSo;cross;2e-5;14,42M;14,42M;0,40;87,82;96,97%;78,87;
+CogniAligned;ADReSSo;bicross;2e-5;21,51M;21,51M;0,89;85,41;93,94%;76,06;
+CogniAligned;ADReSSo;mamba;2e-5;11,10M;11,10M;0,65;89,07;96,97%;83,10;
+CogniAligned;ADReSSo;mamba;1e-5;11,10M;11,10M;1,36;79,18;93,94%;;
+CogniAligned;ADReSSo;mamba;5e-5;11,10M;11,10M;0,96;88,44;96,97%;;
+CogniAligned;Amyloid;cross;2e-5;7,69M;7,69M;0,26;83,90;87,10%;;
+CogniAligned;Amyloid;bicross;2e-5;14,78M;14,78M;1,36;85,68;93,94%;;
+CogniAligned;Amyloid;mamba;2e-5;4,37M;4,37M;0,34;83,37;90,32%;;
+CogniAligned;Amyloid;mamba;1e-5;4,37M;4,37M;0,37;80,85;83,87%;;
+CogniAligned;Amyloid;mamba;5e-5;4,37M;4,37M;0,33;83,41;90,32%;;
+CogniAligned;PPA;cross;2e-5;7,29M;7,29M;0,20;70,80;87,18%;;
+CogniAligned;PPA;bicross;2e-5;14,37M;14,37M;0,62;71,77;76,92%;;
+CogniAligned;PPA;mamba;2e-5;4,02M;4,02M;0,31;72,79;76,92%;;
+CogniAligned;PPA;mamba;1e-5;4,02M;4,02M;0,44;74,21;80,49%;;
+CogniAligned;PPA;mamba;5e-5;4,02M;4,02M;0,32;77,71;82,05%;;
+SER;ADReSSo;selfattn;2e-5;611K;608K;0,75;83,98;88,89%;;
+SER;ADReSSo;mhattn-2;2e-5;1,14M;1,14M;1,59;82,79;92,59%;;
+SER;ADReSSo;mhattn-4;2e-5;1,66M;1,66M;2,62;83,60;85,19%;;
+SER;ADReSSo;crossattn-4;2e-5;1,66M;1,66M;0,80;82,85;87,04%;;
+SER;ADReSSo;mamba;5e-5;2,36M;2,36M;1,85;87,20;94,83%;;
+SER;ADReSSo;mamba;1e-4;2,36M;2,36M;1,83;83,19;90,74%;73,24;
+SER;Amyloid;selfattn;2e-5;611K;608K;0,81;67,18;73,53%;;4/5 folds (f1 cancelled job 2600439)
+SER;Amyloid;mhattn-2;2e-5;1,14M;1,14M;1,25;71,00;88,24%;;
+SER;Amyloid;mhattn-4;2e-5;1,66M;1,66M;2,50;70,30;74,14%;;
+SER;Amyloid;crossattn-4;2e-5;1,66M;1,66M;0,74;69,10;74,14%;;
+SER;Amyloid;mamba;5e-5;2,36M;2,36M;1,89;67,60;73,53%;;
+SER;Amyloid;mamba;1e-4;2,36M;2,36M;2,01;69,04;73,81%;;
+SER;PPA;selfattn;2e-5;612K;608K;0,79;71,39;82,14%;;
+SER;PPA;mhattn-2;2e-5;1,14M;1,14M;1,59;65,02;73,81%;;
+SER;PPA;mhattn-4;2e-5;1,66M;1,66M;2,10;68,64;76,19%;;4/5 folds (f2 cancelled job 2600475)
+SER;PPA;crossattn-4;2e-5;1,66M;1,66M;0,73;69,50;82,50%;;
+SER;PPA;mamba;5e-5;2,36M;2,36M;1,90;64,12;75,00%;;
+SER;PPA;mamba;1e-4;2,36M;2,36M;1,89;67,98;87,50%;;

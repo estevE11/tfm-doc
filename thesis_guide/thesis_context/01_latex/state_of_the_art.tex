@@ -1,0 +1,377 @@
+% -----------------------------------------------------------------------
+% State of the Art
+% -----------------------------------------------------------------------
+This chapter builds the scientific and technical foundation for the work described later in this thesis.
+The central question is deceptively simple: \emph{can a short voice recording tell a clinician something meaningful about what is happening inside a patient's brain?}
+Answering it requires three kinds of understanding: the disease biology that shapes how patients speak, the track record of computational approaches that have tried to extract signal from that speech, and the engineering toolkit that modern deep learning makes available.
+The chapter addresses each in turn, following the structure of recent surveys~\cite{ding2024speechsurvey} while staying anchored to the specific threads of this thesis~\cite{esteve2025speechadppa}: pathology-aware biomarker estimation, differential diagnosis of primary progressive aphasia (PPA), cross-lingual dataset gaps, self-supervised encoders, multimodal fusion, and handcrafted paralinguistic descriptors.
+
+% -----------------------------------------------------------------------
+\subsection{Clinical and Biological Background}
+\label{sec:sota_clinical}
+% -----------------------------------------------------------------------
+
+Before asking how a machine should analyse speech, it is worth asking what the speech is actually reflecting.
+Neurodegenerative diseases do not affect language randomly; they follow anatomical and proteinopathic patterns that produce characteristic breakdowns in fluency, grammar, and lexical access.
+Understanding those patterns is what makes the computational problem tractable rather than arbitrary.
+
+% - - - - - - - - - - - - - - - - - - - - -
+\subsubsection{Amyloid pathology and Alzheimer's disease}
+\label{ssec:amyloid}
+% - - - - - - - - - - - - - - - - - - - - -
+
+Alzheimer's disease (AD) kills neurons silently for years before any symptom appears.
+By the time a patient first complains of memory problems, cortical atrophy may already be widespread and therapeutic windows may have narrowed.
+The underlying molecular event, abnormal aggregation of amyloid-$\beta$ (A$\beta$) peptides, was identified in the early 1990s~\cite{hardy1992amyloid}, yet the path from that discovery to early, scalable detection has remained frustratingly slow.
+
+Today, confirmatory biomarker assessment relies on cerebrospinal fluid (CSF) assays or positron emission tomography (PET) imaging.
+Both are accurate.
+Both are also expensive, capacity-constrained, or invasive: lumbar puncture to collect CSF is a procedure many patients decline, while PET scanners are rare outside major centres.
+The result is that large fractions of at-risk populations reach specialist clinics only after substantial decline has already occurred.
+This access gap is the primary clinical motivation for exploring speech as a low-cost screening signal.
+
+% - - - - - - - - - - - - - - - - - - - - -
+\subsubsection{Primary progressive aphasia and its variants}
+\label{ssec:ppa}
+% - - - - - - - - - - - - - - - - - - - - -
+
+A parallel diagnostic challenge arises at the syndrome level.
+Language deficits emerge across neurodegenerative aetiologies with overlapping phenotypes, making early differential diagnosis difficult even for experienced neurologists.
+Primary progressive aphasia (PPA) exemplifies this tension: it is a disorder in which progressive language impairment is the dominant complaint, and it presents in three broadly recognised variants~\cite{gorno2011ppa,gorno2015ppa}.
+
+The non-fluent/agrammatic variant (\textit{nfv}PPA) is characterised by effortful, halting speech and grammatical breakdown.
+Patients produce short, telegraphic utterances, and verb morphology and function words are the first casualties.
+The semantic variant (\textit{sv}PPA) spares speech rhythm entirely but erodes word and concept meaning: patients speak fluently yet substitute or lose specific nouns, and their knowledge of object categories deteriorates.
+The logopenic variant (\textit{lv}PPA) sits between the two.
+Speech rate is reduced and frequent mid-sentence pauses interrupt otherwise grammatical output, while repetition and phonological processing are selectively impaired.
+
+These profiles are not merely academic labels.
+They carry probabilistic information about the underlying proteinopathy (\textit{nfv}PPA associates with tau inclusions, \textit{sv}PPA with TDP-43 pathology, and \textit{lv}PPA predominantly with amyloid-$\beta$), which in turn informs prognosis and, increasingly, treatment eligibility~\cite{elahi2017clinicopath}.
+Importantly, variant boundaries can blur early in the disease course, making quantitative assessment particularly valuable~\cite{macoir2025rethinkingppa}.
+
+\begin{figure}[H]
+    \centering
+    % ------------------------------------------------------------------
+    % [DIAGRAM PLACEHOLDER]
+    % Suggested figure: comparison table or icon-based infographic.
+    % Three columns: nfvPPA | svPPA | lvPPA.
+    % Rows: speech fluency, grammar, lexical-semantic access,
+    %        repetition, associated proteinopathy, brain region affected.
+    % Colour-code each column. A simple structured graphic reads faster
+    % than prose for this kind of feature-by-variant comparison.
+    % ------------------------------------------------------------------
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{1em}
+        \textit{[Figure: Clinical and linguistic profiles of the three PPA variants]}
+    \vspace{1em}}}
+    \caption[PPA variant profiles]{Comparison of linguistic breakdown patterns, associated proteinopathies, and neuroanatomical correlates in the three PPA variants~\cite{gorno2011ppa,elahi2017clinicopath}.}
+    \label{fig:ppa_variants}
+\end{figure}
+
+From an engineering perspective, these clinical facts carry a direct implication: a useful diagnostic system must be sensitive to \emph{how} a person speaks (articulatory tempo, pause placement, grammatical structure) \emph{and} to \emph{what} they say (lexical choice, semantic coherence, information density).
+Neither the acoustic nor the linguistic channel alone tells the full story~\cite{lima2025communicationsmedicine}.
+
+% -----------------------------------------------------------------------
+\subsection{Speech as a Digital Biomarker}
+\label{sec:sota_biomarker}
+% -----------------------------------------------------------------------
+
+Voice has a practical advantage that no blood draw or imaging scan can match: it is already there.
+Patients speak during every clinical visit, and recordings can be collected remotely, repeatedly, and at negligible marginal cost.
+If robust speech-based markers of cognitive or pathological status could be validated, they would enable a form of longitudinal monitoring that is simply not feasible with PET or CSF~\cite{rezaii2025voiceprints}.
+This section traces the arc of computational research that has tried to realise that promise, from early hand-crafted feature pipelines through community benchmarks to the most recent data-driven classifiers for PPA variant differentiation.
+
+\begin{figure}[H]
+    \centering
+    % ------------------------------------------------------------------
+    % [DIAGRAM PLACEHOLDER]
+    % Suggested figure: comparison panel of biomarker modalities.
+    % X-axis: invasiveness / patient burden (low to high).
+    % Y-axis: approximate cost or accessibility.
+    % Items plotted: smartphone recording, structured telephone task,
+    % neuropsychological battery, CSF assay, amyloid PET scan.
+    % Mark each point with an icon and a one-line annotation.
+    % ------------------------------------------------------------------
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{1em}
+        \textit{[Figure: Biomarker modalities plotted by invasiveness and cost; speech sits at the low-burden extreme]}
+    \vspace{1em}}}
+    \caption[Biomarker modality comparison]{Speech-based biomarkers occupy a unique position in the cost--invasiveness landscape, enabling frequent and remote monitoring that PET or CSF cannot match.}
+    \label{fig:biomarker_comparison}
+\end{figure}
+
+% - - - - - - - - - - - - - - - - - - - - -
+\subsubsection{From engineered features to deep representations}
+\label{ssec:engineered_to_deep}
+% - - - - - - - - - - - - - - - - - - - - -
+
+Early computational work focused on features extractable from transcripts: lexical diversity indices, syntactic complexity measures, and idea-density scores derived from parse trees~\cite{fraser2016linguistic}.
+Shallow classifiers (support-vector machines, random forests) trained on these representations demonstrated that linguistic signal exists in spontaneous speech and could separate AD patients from healthy controls at above-chance accuracy.
+The approach was important as a proof of concept.
+
+Its weakness was practical.
+Manual transcription is slow and expensive.
+The engineered feature sets required considerable domain expertise to define and maintain, and their coverage of the acoustic signal was fragmentary, with the temporal dynamics of the raw waveform going largely unused.
+The resulting decision boundaries were shallow, and performance plateaued as more data or richer feature engineering yielded diminishing returns~\cite{lima2025communicationsmedicine,fristed2022leveraging,gabirondo2025speechbiomarkers,slegers2021connectedppa}.
+
+The natural response was to let models learn their own representations.
+Rather than specifying which acoustic or linguistic properties matter, representation learning discovers useful structure from data, either end-to-end on labelled examples or, more powerfully, through self-supervised pre-training on large unlabelled corpora.
+Reviews of speech-based AD detection now consistently report that deep neural pipelines dominate leaderboard benchmarks when adequate labelled data exist, and that systems jointly consuming acoustic and text modalities outperform either channel alone~\cite{ding2024speechsurvey}.
+
+% - - - - - - - - - - - - - - - - - - - - -
+\subsubsection{Benchmark challenges and public corpora}
+\label{ssec:benchmarks}
+% - - - - - - - - - - - - - - - - - - - - -
+
+Progress in any empirical field depends on shared benchmarks.
+Without frozen evaluation splits and a common protocol, it is impossible to tell whether a new system genuinely improves over the state of the art or merely exploits a more favourable data partition.
+This was the motivation behind the \textsc{ADReSS}o challenge~\cite{luz2021adresso}, which drew a speech-only subset from the DementiaBank Pitt corpus (picture-description recordings balanced by age and gender) and defined a public leaderboard for AD versus healthy-control classification.
+Competition entries established strong baselines~\cite{syed2021muetrmit}, and subsequent work continues to probe model interpretability and feature attribution on the same frozen split~\cite{ntampakis2025neuroxvocal}.
+
+\textsc{ADReSS}o has been valuable, but it also has well-known limitations.
+It is English only.
+It captures a single elicitation task, the Cookie Theft picture description.
+Its size (roughly 156 speakers) limits the diversity of patient profiles that can be represented.
+Performance on this corpus should therefore be interpreted carefully: it reflects generalisation within a particular recording condition and demographic, not deployment in an arbitrary clinic.
+
+Initiatives such as the Sant Pau Initiative on Neurodegeneration (SPIN)~\cite{alcolea2019spin} address this gap by assembling multicentre longitudinal data spanning genetics, imaging, fluid markers, and structured cognitive assessments in predominantly Catalan- and Spanish-speaking populations.
+Subsets incorporating spontaneous speech tied to standard batteries, for instance picture-description prompts compatible with the Western Aphasia Battery~\cite{kertesz1982wab}, provide the language-specific evaluation ground that English-only benchmarks cannot offer.
+Spanish-focused studies confirm that language-aware descriptors achieve strong variant discrimination in PPA cohorts~\cite{matias2019machineppa}, while bilingual analyses add a cautionary note: acoustic models may retain utility when patients speak a non-dominant language, but lexical models become brittle, a critical consideration for the multilingual clinical realities of Catalonia~\cite{pugalenthi2024bilingualppa}.
+
+% - - - - - - - - - - - - - - - - - - - - -
+\subsubsection{Automatic PPA variant classification}
+\label{ssec:ppa_classification}
+% - - - - - - - - - - - - - - - - - - - - -
+
+Identifying that a patient has a neurodegenerative language disorder is only the first step.
+Knowing \emph{which} variant matters clinically, because variants carry different prognoses and, with disease-modifying therapies entering trials, different treatment pathways.
+This creates a multi-class classification problem with an inherently noisy ground truth: clinical labels are assigned by consensus after detailed neuropsychological testing, yet boundaries between variants blur, particularly early in the disease course~\cite{macoir2025rethinkingppa}.
+
+Empirical studies map specific speech features onto the neurolinguistic breakdown profiles hypothesised for each variant.
+Reduced speech rate and grammatical errors mark \textit{nfv}PPA.
+Semantic word substitutions and empty filler words characterise \textit{sv}PPA.
+Frequent within-sentence pauses, phonological errors on multi-syllabic words, and impaired sentence repetition point toward \textit{lv}PPA.
+Quantitatively, pause structure, filler usage, lexical diversity, and discourse coherence metrics are discriminative at the group level~\cite{cho2022lexical}, while raw articulation tempo alone separates non-fluent from fluent variants with clinically relevant accuracy~\cite{cordella2017articulation,haley2021speechmetrics}.
+Connected speech features also associate with cortical amyloid burden within PPA cohorts~\cite{slegers2021connectedppa}, suggesting that speech encodes not only syndrome identity but correlates of the underlying molecular pathology.
+
+More recent approaches escalate modelling complexity.
+Large language models combined with curated linguistic measurements achieve high retrospective classification accuracy~\cite{rezaii2024ppallm}.
+Neural architectures trained jointly on acoustic and linguistic embeddings approach expert-level multi-class accuracy in prospective evaluations~\cite{themistocleous2021automatic}.
+Nevertheless, models trained on small cohorts remain sensitive to sample size and label noise, and cross-cohort validation across recording conditions and accents remains a largely open engineering problem~\cite{nevler2019validated}.
+
+These trends directly motivate the architectures explored in this thesis~\cite{esteve2025speechadppa}, where the goal is to push beyond single-modality baselines by combining acoustic and linguistic representations within a unified framework.
+
+% -----------------------------------------------------------------------
+\subsection{Deep Learning Architectures for Clinical Speech}
+\label{sec:sota_architectures}
+% -----------------------------------------------------------------------
+
+The shift toward deep representation learning introduced a new set of modelling choices: which pre-trained encoder to use for audio, which for text, how to fuse the two streams, and whether to retain interpretable handcrafted features alongside opaque neural embeddings.
+Crucially, the acoustic encoders and the text encoders discussed in this section share a common architectural backbone (the transformer), which is briefly reviewed first.
+Figure~\ref{fig:pipeline_overview} provides an overview of how all components fit together in the end-to-end pipeline.
+
+\begin{figure}[H]
+    \centering
+    % ------------------------------------------------------------------
+    % [DIAGRAM PLACEHOLDER]
+    % Suggested figure: system-level pipeline diagram.
+    % Two parallel branches from a raw audio waveform at the top:
+    %   Left branch:  Waveform -> Self-supervised acoustic encoder
+    %                 (wav2vec 2.0 / HuBERT / WavLM) -> Frame embeddings
+    %   Right branch: Waveform -> ASR (e.g. Whisper) -> Transcript ->
+    %                 Text encoder (BERT / DistilBERT / ModernBERT) -> Token embeddings
+    % Both branches feed into a Fusion module.
+    % Fusion module connects to task heads:
+    %   AD / HC classification | Amyloid-beta status | PPA variant (3-class)
+    % Optional side input: handcrafted feature vector injected at fusion.
+    % ------------------------------------------------------------------
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{1em}
+        \textit{[Figure: End-to-end multimodal pipeline, from raw audio to clinical predictions]}
+    \vspace{1em}}}
+    \caption[Multimodal speech pipeline]{End-to-end architecture for multimodal clinical speech analysis. Raw audio feeds a self-supervised acoustic encoder; after automatic speech recognition, the transcript feeds a pre-trained text encoder. Both embedding streams are fused and passed to task-specific prediction heads.}
+    \label{fig:pipeline_overview}
+\end{figure}
+
+% - - - - - - - - - - - - - - - - - - - - -
+\subsubsection{The transformer architecture}
+\label{ssec:transformer}
+% - - - - - - - - - - - - - - - - - - - - -
+
+Nearly every encoder discussed in this chapter is built on the transformer architecture introduced by Vaswani et al.~\cite{vaswani2017attention}.
+At its core, the transformer replaces the recurrence of earlier sequence models with a \emph{self-attention} mechanism that allows every position in a sequence to attend directly to every other position, regardless of distance.
+Given an input sequence of $n$ embeddings, the mechanism computes three projections per position (query, key, and value), and the output at each position is a weighted sum of all value vectors, where the weights are determined by the compatibility (dot product) between the query at that position and the keys at all others.
+Stacking multiple attention heads in parallel (multi-head attention) lets different heads specialise on different aspects of the input, such as local phonetic context in one head and longer-range syntactic dependencies in another.
+
+A single transformer encoder layer wraps multi-head self-attention with a position-wise feed-forward network, with layer normalisation and residual connections around each sub-block.
+Deep encoders simply stack $L$ such layers, producing a contextualised representation at every input position that reflects the full sequence context.
+For classification tasks, the representation at a designated summary position (typically a prepended \texttt{[CLS]} token in text encoders, or a temporal pooling operation in speech encoders) is taken as the sequence-level embedding and passed to a task-specific output head.
+
+This architecture is relevant here for two reasons.
+First, the same encoder-layer design underlies both the self-supervised acoustic models (wav2vec~2.0, HuBERT, WavLM) and the masked language models (BERT, DistilBERT, ModernBERT), meaning that much of the learned machinery is shared across modalities even though the pre-training objectives differ.
+Second, the self-attention mechanism is also the building block of the cross-modal fusion strategies discussed in Section~\ref{ssec:fusion}, where attention operates across acoustic and textual positions jointly.
+
+% - - - - - - - - - - - - - - - - - - - - -
+\subsubsection{Self-supervised acoustic encoders}
+\label{ssec:acoustic_encoders}
+% - - - - - - - - - - - - - - - - - - - - -
+
+Self-supervised learning sidesteps the label scarcity problem by defining a pre-training objective that requires no human annotation.
+The model is trained to predict or reconstruct part of its own input, for example by predicting masked segments from their unmasked context.
+Trained on large unlabelled audio corpora (thousands of hours of speech), the encoder learns frame-level representations that generalise to downstream tasks with far smaller labelled datasets.
+This property is especially valuable in clinical settings, where annotated cohorts are almost always small.
+
+\paragraph{wav2vec~2.0.}
+Baevski et al.~\cite{baevski2020wav2vec} introduced a two-stage architecture.
+A convolutional feature extractor first maps raw waveform samples to a sequence of latent representations at approximately 20\,ms resolution.
+These latent vectors are then discretised into a finite codebook via product quantisation, and the resulting discrete tokens serve as pseudo-labels.
+A transformer encoder processes the latent sequence with random masking applied, and the pre-training objective is a contrastive loss that requires the model to identify the correct quantised token for each masked position among a set of distractors.
+The trained encoder produces contextualised frame embeddings that reflect not only local spectral content but temporal context spanning hundreds of milliseconds.
+
+\paragraph{HuBERT.}
+Hsu et al.~\cite{hsu2021hubert} replaced the online codebook of wav2vec~2.0 with offline pseudo-labels obtained by k-means clustering of acoustic features from an earlier iteration of the model itself.
+This decouples label quality from representation quality during training and enables iterative refinement: cluster, train, re-cluster.
+The resulting encoder produces representations that align more closely with phonetic units and have shown strong transfer on speaker-independent downstream tasks.
+
+\paragraph{WavLM.}
+Chen et al.~\cite{chen2022wavlm} extended the HuBERT framework with a denoising objective: some training utterances are corrupted by additive noise or overlapping speech before masking, and the model must still predict the clean token despite the distortion.
+This regularisation yields representations that are more robust to recording-condition mismatch, a relevant advantage for clinical audio that may contain ambient noise, microphone variation, or co-occurring voices.
+WavLM consistently achieves top performance across the SUPERB benchmark suite and has emerged as the preferred backbone in recent clinical speech work.
+
+% - - - - - - - - - - - - - - - - - - - - -
+\subsubsection{Automatic speech recognition for clinical audio}
+\label{ssec:asr}
+% - - - - - - - - - - - - - - - - - - - - -
+
+The text branch of any multimodal speech pipeline depends on an automatic speech recognition (ASR) system to convert the raw waveform into a transcript.
+ASR quality matters directly, because every substitution, deletion, or insertion in the recognised text propagates into the token embeddings consumed by the text encoder.
+
+Modern end-to-end ASR systems, most notably Whisper~\cite{radford2023whisper}, are trained on hundreds of thousands of hours of weakly supervised audio and achieve low word error rates on broadcast and conversational speech.
+However, clinical recordings present specific challenges: patients with neurodegenerative conditions may exhibit reduced articulatory precision, atypical prosody, frequent hesitations, and non-standard word forms that fall outside the distribution of typical training data.
+Several studies have reported that ASR error rates on pathological speech can be substantially higher than on matched healthy-speaker recordings~\cite{ding2024speechsurvey}, and that these errors are not uniformly distributed across patient groups.
+For instance, the lengthened closures and distorted phonemes characteristic of \textit{nfv}PPA are more likely to produce recognition errors than the fluent but semantically impoverished speech of \textit{sv}PPA.
+
+Two practical consequences follow.
+First, the choice of ASR model and its fine-tuning strategy should be considered a first-class design decision, not merely a preprocessing step.
+Second, robustness of the downstream text encoder to noisy transcripts becomes a relevant evaluation criterion.
+The specific ASR configuration adopted in this work is detailed in the methodology chapter.
+
+% - - - - - - - - - - - - - - - - - - - - -
+\subsubsection{Contextual text encoders}
+\label{ssec:text_encoders}
+% - - - - - - - - - - - - - - - - - - - - -
+
+On the text side, the dominant pre-training paradigm is masked language modelling (MLM).
+A transformer encoder processes a token sequence in which a fraction of tokens have been randomly replaced by a special mask symbol, and the pre-training objective is to predict the original token from its bidirectional context.
+Unlike the left-to-right language models used for text generation, bidirectional encoders attend simultaneously to preceding and following tokens, making them well suited to sentence-level classification and regression tasks.
+
+\paragraph{BERT.}
+Devlin et al.~\cite{devlin2019bert} demonstrated that large-scale MLM pre-training on general text corpora (BooksCorpus and English Wikipedia) yields contextual token embeddings that fine-tune effectively across a wide range of NLP benchmarks with minimal architectural modification.
+For classification, the representation at the prepended \texttt{[CLS]} token is typically taken as the sentence-level summary and passed to a linear output layer.
+Applied to clinical speech transcripts, BERT embeddings capture lexical choices, local syntactic patterns, and semantic anomalies, all of which are relevant to cognitive assessment.
+
+\paragraph{DistilBERT.}
+Sanh et al.~\cite{sanh2019distilbert} showed that a six-layer student model trained to mimic the output distributions of a twelve-layer BERT teacher retains approximately 97\% of its downstream task performance at 40\% fewer parameters and 60\% faster inference.
+The reduced footprint makes DistilBERT attractive for systems that must be deployed at scale or on resource-constrained hardware.
+
+\paragraph{ModernBERT.}
+Warner et al.~\cite{warner2025modernbert} revisited the encoder-only architecture with a range of improvements accumulated since 2019: rotary positional embeddings that extend the effective context length well beyond 512 tokens, alternating local and global attention to reduce quadratic complexity, and training on substantially larger and more diverse corpora.
+For clinical speech, the extended context window is directly relevant: spontaneous picture-description narratives, though short by document standards, benefit from a model that can attend globally across an entire utterance without truncation artefacts.
+
+% - - - - - - - - - - - - - - - - - - - - -
+\subsubsection{Multimodal fusion strategies}
+\label{ssec:fusion}
+% - - - - - - - - - - - - - - - - - - - - -
+
+Fusing acoustic and textual streams is not straightforward.
+The two modalities operate at fundamentally different temporal resolutions: acoustic frames are typically spaced at 20\,ms, while word-level transcripts emerge from the ASR system at intervals of hundreds of milliseconds or more.
+Before any joint learning can happen, the system must decide how to reconcile this mismatch.
+
+Three broad fusion philosophies have been explored~\cite{ding2024speechsurvey,esteve2025speechadppa}.
+\textbf{Early fusion} aggregates both streams into a single representation before the classification head, typically by temporal pooling followed by concatenation.
+It is simple, but pooling discards the sequential structure that may carry diagnostic signal.
+\textbf{Late fusion} maintains separate modality-specific encoders through to the decision layer, combining only at the output; this preserves intra-modal structure but loses cross-modal interactions.
+\textbf{Intermediate fusion}, the most expressive family, stacks the two streams into a shared sequence and allows self-attention to operate across them, enabling the model to learn which acoustic moments correspond to which lexical events.
+
+\begin{figure}[H]
+    \centering
+    % ------------------------------------------------------------------
+    % [DIAGRAM PLACEHOLDER]
+    % Suggested figure: three-panel diagram comparing fusion strategies.
+    % Panel A (Early): audio + text both pooled -> concat -> classifier.
+    % Panel B (Late): audio encoder -> prediction, text encoder ->
+    %   prediction, combine at output.
+    % Panel C (Intermediate): audio frame tokens and text tokens
+    %   interleaved in a shared sequence, cross-attention applied.
+    % Use consistent colour coding for audio (blue) and text (orange)
+    % branches across all three panels.
+    % ------------------------------------------------------------------
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{1em}
+        \textit{[Figure: Early, late, and intermediate multimodal fusion strategies]}
+    \vspace{1em}}}
+    \caption[Fusion strategies]{Schematic comparison of the three main fusion philosophies for multimodal clinical speech analysis. Intermediate fusion allows cross-modal attention but requires careful temporal alignment~\cite{ding2024speechsurvey}.}
+    \label{fig:fusion_strategies}
+\end{figure}
+
+An important refinement within intermediate fusion is explicit \emph{cross-modal temporal alignment}.
+When silences precede lexical onsets, or when a patient produces a lengthened, effortful syllable spanning many acoustic frames, a naive concatenation of embeddings misaligns the two streams.
+The CogniAlign architecture addresses this directly: it first aligns acoustic frames to word boundaries using forced alignment, then refines the joint representation with gated cross-attention~\cite{ortiz2025cognialign}.
+The intuition is that the network should attend to co-occurring acoustic evidence (jitter, spectral tilt shifts, articulatory closures) and lexical hypotheses together, rather than in parallel isolation.
+
+A complementary line of work repurposes fusion architectures from adjacent paralinguistic domains, such as speaker verification and speech emotion recognition, and adapts them to clinical speech with domain regularisation~\cite{naini2025interspeechser}.
+Competitive results suggest that encoder stacks trained on large emotion corpora contribute useful priors when fine-tuned on clinical data~\cite{esteve2025speechadppa}.
+
+% - - - - - - - - - - - - - - - - - - - - -
+\subsubsection{Handcrafted descriptors alongside learned embeddings}
+\label{ssec:handcrafted}
+% - - - - - - - - - - - - - - - - - - - - -
+
+Self-supervised waveform encoders are powerful but opaque.
+When a WavLM embedding drives a classification decision, the responsible acoustic property is hidden inside hundreds of non-linear transformations.
+For clinical deployment this is a genuine concern: a clinician who cannot interpret a model's reasoning cannot calibrate their trust in it.
+
+Handcrafted descriptors address this directly.
+Pause histograms, intensity envelopes, fundamental-frequency variation, shimmer and jitter, harmonics-to-noise ratio, spectral moments, formant tracks, and mel-frequency cepstral coefficients all map to measurable articulatory and phonatory parameters with established clinical interpretations.
+Pause-oriented statistics emerge repeatedly as among the most sensitive markers of cognitive decline~\cite{imre2022temporal,zheng2024survey}.
+Voice-quality perturbations such as jitter and shimmer may reflect neurogenic motor control deficits independent of the lexical content of the utterance~\cite{rezaii2025voiceprints}.
+
+Recent open-source pipelines demonstrate that coupling classical descriptors with modern neural backbones can preserve or improve benchmark accuracy relative to embeddings alone~\cite{ntampakis2025neuroxvocal}.
+Whether handcrafted features provide complementary signal or merely recapitulate information already captured in the embedding depends on architecture and task.
+In systems with explicit audio-text alignment, part of the prosodic signal may already be encoded by the alignment mechanism, reducing the marginal contribution of auxiliary feature vectors~\cite{ortiz2025cognialign,esteve2025speechadppa}.
+Resolving this question empirically, rather than assuming a fixed answer, is one of the concrete contributions of this thesis.
+
+\begin{figure}[H]
+    \centering
+    % ------------------------------------------------------------------
+    % [DIAGRAM PLACEHOLDER]
+    % Suggested figure: two-column taxonomy diagram.
+    % Left column: four feature families, each with 2-3 examples and
+    %   a one-line clinical interpretation:
+    %     Temporal / pause: pause rate, pause duration histogram -> planning deficits
+    %     Prosody: F0 range, speech rate -> neurogenic motor control
+    %     Voice quality: jitter, shimmer, HNR -> phonatory instability
+    %     Spectral / cepstral: MFCCs, formant tracks -> articulation changes
+    % Right column (optional): small bar chart showing accuracy delta
+    %   (embeddings only vs. embeddings + handcrafted) across tasks.
+    % ------------------------------------------------------------------
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{1em}
+        \textit{[Figure: Taxonomy of handcrafted acoustic descriptors and their clinical interpretation]}
+    \vspace{1em}}}
+    \caption[Handcrafted descriptors]{Handcrafted acoustic and paralinguistic descriptors grouped by feature family. Interpretability is their primary advantage over learned embeddings.}
+    \label{fig:handcrafted_descriptors}
+\end{figure}
+
+% -----------------------------------------------------------------------
+\subsection{Synthesis and Positioning}
+\label{sec:sota_synthesis}
+% -----------------------------------------------------------------------
+
+Reviewing this landscape, three design commitments emerge as both well-motivated by the literature and directly addressed by the methodology of this thesis~\cite{esteve2025speechadppa}.
+
+First, models should be evaluated against \emph{pathology-aware} labels where they exist (amyloid status, variant diagnosis) rather than the simpler dementia-versus-control proxy that dominates public benchmarks.
+The clinical questions that matter are more specific than binary screening.
+
+Second, competing multimodal fusion architectures should be benchmarked on both an English reference corpus (\textsc{ADReSS}o) and a clinically curated Spanish-language subset aligned with SPIN, using harmonised preprocessing to ensure that observed differences reflect architecture rather than pipeline variation.
+English-only results generalise poorly, and the field needs systematic cross-lingual evidence~\cite{ding2024speechsurvey,pugalenthi2024bilingualppa}.
+
+Third, the complementarity of handcrafted acoustic descriptors relative to state-of-the-art self-supervised encoders and explicit audio-text alignment should be \emph{measured empirically}, not assumed.
+The answer will vary by task and architecture, and quantifying it informs both model design and clinical interpretability~\cite{ortiz2025cognialign,ntampakis2025neuroxvocal}.
+
+The following methodology chapter translates these three commitments into concrete architectures, training protocols, and evaluation choices.

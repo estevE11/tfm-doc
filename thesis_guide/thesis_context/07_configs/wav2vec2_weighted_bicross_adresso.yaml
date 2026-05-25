@@ -1,0 +1,53 @@
+# Ablation: learnable Wav2Vec2 layer mixing (SER-style), bicross fusion, ADReSSo.
+# Requires embeddings from:
+#   python run_preprocessing.py --wav2vec2_layer_mode weighted
+#   python run_preprocessing.py --wav2vec2_layer_mode weighted --test
+# Default configs omit wav2vec2_layer_mode / use_weighted_audio_layers → last layer only.
+data:
+  acoustic_features_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/acoustic_features.csv
+  csv_labels_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/adresso-train-mmse-scores.csv
+  root_audio_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/audio/
+  root_text_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/text/
+  splits_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/splits/
+  test_csv_labels_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/test-dist/test_results_task1.csv
+  test_dir: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/test-dist
+  test_root_audio_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/test-dist/audio/
+  test_root_text_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/test-dist/text/
+  train_dir: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train
+  # auto-set to _wlayer when wav2vec2_layer_mode is weighted (override to combine with alignment_suffix)
+  audio_layer_suffix: ''
+model:
+  audio_model: wav2vec2
+  audio_num_hidden_layers: 12
+  wav2vec2_layer_mode: weighted
+  use_weighted_audio_layers: true
+  dropout: 0.3
+  fusion: bicross
+  hidden_mlp_size: 256
+  hidden_size: 768
+  intermediate_size: 3072
+  n_heads: 8
+  n_layers: 1
+  num_acoustic_features: 55
+  num_classes: 1
+  pauses: true
+  pooling: mean
+  textual_model: distil
+  use_acoustic_features: true
+  use_positional_encoding: false
+  experiment_tag: _wlayer
+train:
+  batch_size: 32
+  cross_validation: true
+  cross_validation_folds: 5
+  early_stopping: true
+  early_stopping_patience: 15
+  learning_rate: 2.0e-05
+  num_epochs: 200
+  weight_decay: 0.1
+wandb:
+  entity: ''
+  mode: online
+  project: CogniAligned
+dataset_prefix: adresso
+model_name: ''

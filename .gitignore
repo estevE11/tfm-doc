@@ -17,6 +17,15 @@
 # Minted package output
 _minted*/
 
+# Additional LaTeX artifacts
+*.lol
+
+# Build output directory
+latex_build/
+
+# Reference PDFs (large binaries)
+thesis_guide/thesis_context/03_pdfs/
+
 # Compiled PDFs (uncomment if you want to track PDFs)
 # *.pdf
 

@@ -1,0 +1,10 @@
+phase,dataset,alignment,fusion,lr,total_params,trainable_params,val_acc_mean,best_fold_acc,val_inference_ms_per_sample,test_acc,test_inference_ms_per_sample,note
+C-pilot,adresso,word_token,cross,2e-5,,,0.866254,0.969697,0.3977,0.788732,1.2753,reused_stepB_cross
+C-pilot,amyloid,word_token,cross,2e-5,,,0.839006,0.870968,0.4863,,,reused_stepB_cross
+C-pilot,ppa,word_token,cross,2e-5,,,0.707989,0.871795,0.2025,,,reused_stepB_cross
+C-pilot,adresso,token_token_uniform,cross,2e-5,,,0.872137,0.941176,0.5834,0.774648,1.0422,
+C-pilot,amyloid,token_token_uniform,cross,2e-5,,,0.839006,0.870968,0.4786,,,
+C-pilot,ppa,token_token_uniform,cross,2e-5,,,0.707989,0.871795,0.2120,,,
+C-pilot,adresso,token_token_char,cross,2e-5,,,0.866254,0.969697,0.3966,0.788732,0.9340,
+C-pilot,amyloid,token_token_char,cross,2e-5,,,0.839006,0.870968,0.5336,,,
+C-pilot,ppa,token_token_char,cross,2e-5,,,0.677727,0.794872,0.3169,,,

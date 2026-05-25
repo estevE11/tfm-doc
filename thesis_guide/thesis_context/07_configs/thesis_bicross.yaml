@@ -1,0 +1,41 @@
+data:
+  acoustic_features_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/acoustic_features.csv
+  csv_labels_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/adresso-train-mmse-scores.csv
+  root_audio_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/audio/
+  root_text_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/text/
+  splits_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train/splits/
+  test_csv_labels_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/test-dist/test_results_task1.csv
+  test_dir: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/test-dist
+  test_root_audio_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/test-dist/audio/
+  test_root_text_path: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/test-dist/text/
+  train_dir: /home/usuaris/veussd/roger.esteve.sanchez/adresso/ADReSSo21/diagnosis/train
+model:
+  audio_model: wav2vec2
+  dropout: 0.3
+  fusion: bicross
+  hidden_mlp_size: 256
+  hidden_size: 768
+  intermediate_size: 3072
+  n_heads: 8
+  n_layers: 1
+  num_acoustic_features: 55
+  num_classes: 1
+  pauses: true
+  pooling: mean
+  textual_model: distil
+  use_acoustic_features: true
+  use_positional_encoding: false
+model_name: ''
+train:
+  batch_size: 32
+  cross_validation: true
+  cross_validation_folds: 5
+  early_stopping: true
+  early_stopping_patience: 15
+  learning_rate: 2.0e-05
+  num_epochs: 200
+  weight_decay: 0.1
+wandb:
+  entity: ''
+  mode: online
+  project: CogniAligned

@@ -1,0 +1,157 @@
+\documentclass[a4paper,12pt]{article}
+
+\input{tools/packages.tex}
+\input{tools/styles.tex}
+\input{tools/acro.tex}
+
+\begin{document}
+
+%%% COVER %%%
+\fancypagestyle{alim}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}
+\cfoot{\includegraphics[height=2.2cm]{img/logos/logo_telecos.png}}
+}
+\thispagestyle{empty}
+\begin{center}
+{\sffamily
+\resizebox{0.8\textwidth}{!}{\includegraphics{img/logos/upc_completo+telecos.png}}\\
+\vspace{1cm}
+{\Huge Thesis title}\\
+\vspace{0.5cm}
+{\color{black}\rule{\linewidth}{1pt}}
+\vspace{1cm}
+{\large{Master Thesis\\
+submitted to the Faculty of the \\
+Escola T\`ecnica d'Enginyeria de Telecomunicaci\'o de Barcelona \\
+Universitat Polit\`ecnica de Catalunya \\
+by\\
+\vspace{0.4cm}
+Roger Esteve}}
+
+\vspace{1.5cm}
+
+{In partial fulfillment\\
+of the requirements for the master in\\
+\textit{Master's degree in Advanced Telecommunication Technologies (MATT), track in
+Deep Learning for Multimedia Processing}}
+
+\vspace{2cm}
+
+{{Advisor: Dr Francisco Javier Hernando Pericas}} \\
+{{Barcelona, Date XXXXX}}
+\thispagestyle{alim}
+}
+
+%%% INDEX %%%
+\end{center}
+\newpage
+\tableofcontents
+
+%%% LISTS %%%
+\newpage
+\listoffigures
+\listoftables
+
+%%% ABSTRACT %%%
+\clearpage
+\newpage
+\section*{Abstract}
+
+%%% 1. INTRODUCTION %%%
+\clearpage
+\section{Introduction}
+\input{introduction}
+
+%%% 2. STATE OF THE ART %%%
+\clearpage
+\section{State of the Art}
+\input{state_of_the_art}
+
+%%% 3. METHODOLOGY %%%
+\clearpage
+\section{Methodology}
+
+\subsection{Problem Formulation}
+
+\subsection{Datasets and Preprocessing}
+
+\subsubsection{ADReSS Corpus}
+
+\subsubsection{SPIN Clinical Cohort}
+
+\subsubsection{ASR Pipeline and Transcript Quality}
+
+\subsection{System Architecture}
+
+\subsubsection{Acoustic Encoder: Choice and Configuration}
+
+\subsubsection{Text Encoder: Choice and Configuration}
+
+\subsubsection{Fusion Module}
+
+\subsubsection{Handcrafted Feature Extraction and Integration}
+
+\subsubsection{Classification and Regression Heads}
+
+\subsection{Training Protocol}
+
+\subsection{Evaluation Metrics and Baselines}
+
+%%% 4. EXPERIMENTS AND RESULTS %%%
+\clearpage
+\section{Experiments and Results}
+
+\subsection{AD Classification on ADReSS}
+
+\subsection{Amyloid-\texorpdfstring{$\beta$}{beta} Status Prediction on SPIN}
+
+\subsection{PPA Variant Classification}
+
+\subsection{Ablation Studies}
+
+\subsection{Error Analysis}
+
+%%% 5. DISCUSSION %%%
+\clearpage
+\section{Discussion}
+
+\subsection{Comparison with Prior Work}
+
+\subsection{Cross-lingual Generalisation}
+
+\subsection{Clinical Relevance and Deployment Considerations}
+
+\subsection{Limitations and Threats to Validity}
+
+%%% 6. BUDGET %%%
+\clearpage
+\section{Budget}
+
+%%% 7. ENVIRONMENTAL IMPACT %%%
+\clearpage
+\section{Environmental Impact}
+
+%%% 8. CONCLUSIONS %%%
+\clearpage
+\section{Conclusions and Future Work}
+
+%%% BIBLIOGRAPHY %%%
+\newpage
+\medskip
+\bibliographystyle{unsrt}
+\bibliography{bibliography}
+
+%%% APPENDICES %%%
+\clearpage
+\newpage
+
+\begin{appendices}
+
+\section{Hyperparameter Tables}
+
+\section{Additional Ablation Results}
+
+\section{Sample Transcripts and Feature Distributions}
+
+\end{appendices}
+
+\end{document}

@@ -23,11 +23,12 @@ _minted*/
 # Build output directory
 latex_build/
 
+# Build folder - only track main.pdf
+build/*
+!build/main.pdf
+
 # Reference PDFs (large binaries)
 thesis_guide/thesis_context/03_pdfs/
-
-# Compiled PDFs (uncomment if you want to track PDFs)
-# *.pdf
 
 # macOS
 .DS_Store

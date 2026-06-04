@@ -27,8 +27,6 @@ by\\
 \vspace{0.4cm}
 Roger Esteve}}
 
-\nocite{*} % only if you no use \cite{}
-
 \vspace{1.5cm}
 
 {In partial fulfillment\\
@@ -79,8 +77,190 @@ arguments presented in the thesis. The abstract may not exceed 150 words for a D
 %%% METHODOLOGY %%%
 \clearpage\section{Methodology / project development: }
 
-{The Methodology is included in this chapter and should include all relevant methods that were utilized as well as
-research methods and measurements, software and hardware development, ...}
+\subsection{Problem Formulation}
+\label{ssec:problem_formulation}
+
+The general problem addressed in this thesis is the prediction of a clinical label from a single recording of spontaneous speech elicited by a structured picture-description task. Each sample is a pair $(x^{\mathrm{a}}, x^{\mathrm{t}})$, where $x^{\mathrm{a}}$ is the raw acoustic waveform and $x^{\mathrm{t}}$ is the corresponding transcript of the utterance, and the goal is to learn a mapping $f_\theta : (x^{\mathrm{a}}, x^{\mathrm{t}}) \mapsto y$, where $y \in \mathcal{Y}$ is a discrete diagnostic label whose domain depends on the task.
+
+We study three tasks, each defined over a distinct clinical cohort and summarised in Table~\ref{tab:datasets}. The first is Alzheimer's disease classification, a binary discrimination between AD patients and cognitively normal (CN) controls on the English ADReSSo cohort~\cite{luz2021adresso}, with $\mathcal{Y} = \{\mathrm{AD}, \mathrm{CN}\}$; this is the only task with an official held-out test partition. The second is amyloid-$\beta$ status prediction, a binary proxy-biomarker task on the Spanish SPIN cohort~\cite{alcolea2019spin}, with $\mathcal{Y} = \{\mathrm{positive}, \mathrm{negative}\}$. The third is primary progressive aphasia variant classification, a three-class problem distinguishing the non-fluent/agrammatic, semantic, and logopenic variants~\cite{gorno2011ppa} on the Spanish WAB cohort~\cite{kertesz1982wab}, with $|\mathcal{Y}| = 3$. The two Spanish tasks share the WAB data tree and have no official external test split, so for these we report cross-validated performance only and never construct an artificial test partition.
+
+Both modalities are encoded by frozen self-supervised models. The acoustic stream is processed by a Wav2Vec~2.0 XLSR-300M encoder~\cite{baevski2020wav2vec}, producing a frame-level sequence $\mathbf{H}^{\mathrm{a}} = (\mathbf{h}^{\mathrm{a}}_1, \dots, \mathbf{h}^{\mathrm{a}}_{T_a})$, and the textual stream by a frozen transformer text encoder of the BERT family~\cite{devlin2019bert}, producing a token-level sequence $\mathbf{H}^{\mathrm{t}} = (\mathbf{h}^{\mathrm{t}}_1, \dots, \mathbf{h}^{\mathrm{t}}_{T_t})$. Because the two sequences live on different time bases ($T_a \neq T_t$), an alignment step is required to place acoustic and textual representations on a common index before they can be fused, after which a sequence-to-sequence fusion module combines the aligned streams into a representation that feeds a lightweight classification head.
+
+Rather than treating this pipeline as a single monolithic system optimised end to end, this thesis formulates it as the composition of four largely independent design axes, each of which can be varied while the others are held at controlled defaults. The modality axis $m$ determines whether the classifier consumes audio alone, text alone, their combination, or additionally a set of handcrafted acoustic features. The fusion axis $f$ selects the sequence-to-sequence architecture that combines the aligned acoustic and textual streams, drawn from a catalogue of seven families. The alignment axis $a$ fixes the scheme that maps acoustic frames onto text positions, comprising the word-to-token baseline of CogniAlign~\cite{ortiz2025cognialign} and the two token-to-token schemes proposed in this work. Finally, the Wav2Vec pooling axis $w$ chooses between the final encoder layer and a learnable weighted sum across layers.
+
+A concrete system instance is thus parameterised by a tuple $(m, f, a, w)$, and the central empirical question is to estimate the marginal contribution of each axis---alone and in interaction---to performance on the three tasks, rather than to identify a single best-performing run. The unit of comparison is therefore the \emph{technique}, not the implementation: two independent codebases are used so that the fusion and Wav2Vec-pooling trends can be replicated under a second software stack, with the understanding that cross-stack figures are directional rather than identical reproductions (Section~\ref{ssec:architecture}). Building on this decomposition, the experimental programme of Section~\ref{sec:experiments} traverses the axes in a staged sequence, and the synthesis of the strongest choice along each axis into a recommended hybrid architecture is taken up in the Discussion.
+
+\subsection{Datasets and Preprocessing}
+\label{ssec:datasets}
+
+The three tasks defined in Section~\ref{ssec:problem_formulation} are evaluated on two clinical cohorts, summarised in Table~\ref{tab:datasets}: the English ADReSSo benchmark for AD classification, and a curated subset of the Spanish-speaking SPIN cohort that supplies both the amyloid-$\beta$ and PPA tasks. They differ in language, label space, and the availability of a held-out test partition, which in turn governs the evaluation protocol applied to each (Section~\ref{ssec:evaluation}). All recordings originate from structured picture-description tasks, so the input distribution is comparable across cohorts even though the underlying populations and elicitation languages differ. The cohort descriptions and demographic characterisation below follow the companion paper in which we first introduced this SPIN subset~\cite{esteve2025speechadppa}; the remainder of the subsection details each cohort and the common preprocessing pipeline that turns raw recordings into the paired acoustic and textual representations consumed by the model.
+
+\begin{table}[H]
+\centering
+\caption[Clinical cohorts and evaluation protocol]{\footnotesize Clinical cohorts, languages, label spaces, and evaluation protocol. Only the English ADReSSo cohort provides an official held-out test partition; the two Spanish tasks are evaluated by stratified cross-validation.}
+\label{tab:datasets}
+\footnotesize{
+\begin{tabular}{@{}llccl@{}}
+\toprule
+\textbf{Task} & \textbf{Cohort} & \textbf{Language} & \textbf{Classes} & \textbf{Evaluation} \\ \midrule
+AD vs.\ CN & ADReSSo & English & 2 & Official \texttt{test-dist} (\texttt{test\_acc}) \\
+Amyloid-$\beta$ status & SPIN & Spanish & 2 & 5-fold CV (validation only) \\
+PPA variant & SPIN & Spanish & 3 & 5-fold CV (validation only) \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\subsubsection{ADReSS Corpus}
+
+The Alzheimer's disease task uses the ADReSSo-IS2021 corpus introduced for the corresponding Interspeech challenge~\cite{luz2021adresso}. The corpus is derived from the English-language DementiaBank Pitt Corpus and comprises 237 spontaneous picture-description recordings, totalling approximately 166 minutes of speech, in which participants describe the Cookie Theft scene from the Boston Diagnostic Aphasia Examination. It is balanced between AD patients and healthy controls and matched for age and sex, which removes the most obvious demographic confounds and makes it a clean benchmark for isolating speech-based effects. The challenge distributes a fixed train and \texttt{test-dist} split, so this is the only task in the thesis with an official external test set and therefore the only one on which we report a held-out test accuracy in addition to cross-validated performance. We use ADReSSo primarily to anchor the architecture against a well-documented English benchmark, as in our companion paper~\cite{esteve2025speechadppa}, rather than to optimise exhaustively for the challenge leaderboard.
+
+\subsubsection{SPIN Clinical Cohort}
+
+The two Spanish tasks are defined on a curated subset of the Sant Pau Initiative on Neurodegeneration (SPIN)~\cite{alcolea2019spin}, a longitudinal cohort for biomarker discovery and validation in neurodegenerative disorders maintained at the Hospital de la Santa Creu i Sant Pau in Barcelona. From this cohort we assembled a set of Spanish-speaking participants for whom spontaneous speech recordings, a confirmed amyloid-$\beta$ status, and, where applicable, a clinical PPA variant diagnosis were all available~\cite{esteve2025speechadppa}. Unlike ADReSSo, the elicitation stimulus is the ``Picnic Scene'' from the Western Aphasia Battery~\cite{kertesz1982wab}, and recordings were captured during routine clinical evaluations, with a variable number of samples per subject ranging from one to seven. This repeated-measures structure is the reason all cross-validation on SPIN is stratified by subject identifier, so that recordings from the same participant never straddle the train and validation folds; reporting at the recording level rather than the subject level would otherwise leak speaker identity and inflate the estimated accuracy.
+
+The subset supports two clinically distinct tasks. The amyloid-$\beta$ prediction task is a binary problem that asks the model to predict amyloid positivity, a fluid biomarker of AD whose confirmation otherwise requires costly or invasive cerebrospinal-fluid assays or PET imaging. At the subject level it comprises 53 amyloid-positive and 49 amyloid-negative participants, and at the recording level 114 positive and 98 negative samples, leaving the task approximately balanced. The PPA variant classification task is a three-class problem distinguishing the logopenic (lvPPA), non-fluent/agrammatic (nfvPPA), and semantic (svPPA) variants, with 35, 22, and 17 subjects and 104, 63, and 35 recordings respectively. This task is markedly imbalanced---svPPA accounts for fewer than a third of the lvPPA recordings---and the small per-class subject counts make fold-level performance estimates high-variance, so the PPA results are interpreted with corresponding caution.
+
+Tables~\ref{tab:demo_amyloid} and~\ref{tab:demo_ppa} report the demographic composition of the two tasks. No statistically significant differences in age, sex, or years of education were found across the groups of either task, assessed with the Wilcoxon rank-sum test for continuous variables and Pearson's chi-squared test for categorical ones~\cite{esteve2025speechadppa}; this matching is important because it makes it less likely that a classifier exploits demographic shortcuts rather than disease-related speech characteristics.
+
+\begin{table}[H]
+\centering
+\caption[SPIN demographics by amyloid status]{\footnotesize Demographic composition of the SPIN amyloid-$\beta$ task by subject. Values are mean\,$\pm$\,SD or $n$ (\%).}
+\label{tab:demo_amyloid}
+\footnotesize{
+\begin{tabular}{@{}lcc@{}}
+\toprule
+ & \textbf{Negative} ($N=49$) & \textbf{Positive} ($N=53$) \\ \midrule
+Age (years)      & $72.8\pm6.1$ & $72.6\pm6.8$ \\
+Female           & $25$ ($51.0\%$) & $22$ ($41.5\%$) \\
+Male             & $24$ ($49.0\%$) & $31$ ($58.5\%$) \\
+Education (years)& $12.8\pm6.6$ & $11.8\pm5.7$ \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption[SPIN demographics by PPA variant]{\footnotesize Demographic composition of the SPIN PPA task by subject. Values are mean\,$\pm$\,SD or $n$ (\%).}
+\label{tab:demo_ppa}
+\footnotesize{
+\begin{tabular}{@{}lccc@{}}
+\toprule
+ & \textbf{lvPPA} ($N=35$) & \textbf{nfvPPA} ($N=22$) & \textbf{svPPA} ($N=17$) \\ \midrule
+Age (years)      & $72.6\pm6.5$ & $74.7\pm4.9$ & $73.4\pm5.8$ \\
+Female           & $15$ ($42.9\%$) & $9$ ($40.9\%$) & $11$ ($64.7\%$) \\
+Male             & $20$ ($57.1\%$) & $13$ ($59.1\%$) & $6$ ($35.3\%$) \\
+Education (years)& $10.4\pm6.4$ & $12.6\pm5.9$ & $9.8\pm6.9$ \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\subsubsection{ASR Pipeline and Transcript Quality}
+
+The textual modality is derived from the audio rather than from gold manual transcripts, so that the pipeline reflects a realistic deployment in which only recordings are available. Each recording is first truncated to its initial forty seconds of speech, which approximates the effective input length of the alignment-based model and, on the SPIN data, avoids capturing the clinician speech that occasionally appears toward the end of an evaluation. The truncated audio is then transcribed with Whisper, and the resulting transcript is tokenised by the text encoder before being aligned with the acoustic stream. Because recognition errors propagate into the textual representation, transcript quality is a genuine source of variance, particularly for the Spanish cohort and for the disfluent or aphasic speech characteristic of PPA; the experiments therefore treat the text modality as one ablatable input among several rather than as a noise-free signal.
+
+\subsection{System Architecture}
+\label{ssec:architecture}
+
+The model follows a two-stream design in which audio and text are embedded independently by frozen self-supervised encoders, aligned onto a common sequence index, combined by a sequence-to-sequence fusion module, and finally pooled and mapped to a task label by a lightweight head (Figure~\ref{fig:system_architecture}). Each stage corresponds to one of the design axes introduced in Section~\ref{ssec:problem_formulation}: the encoders and their pooling fix the acoustic and textual representations, the alignment step determines how the two time bases are reconciled, and the fusion module determines how the aligned streams interact. Isolating the stages in this way is precisely what makes the ablation programme possible, since a single axis can be changed while the rest of the pipeline is held fixed.
+
+Both encoders are kept frozen throughout. This is a deliberate modelling choice rather than a computational shortcut: freezing keeps the trainable parameter count in the low millions, concentrates learning capacity in the fusion module under study, reduces the risk of overfitting the small clinical cohorts, and---because the encoder outputs are then deterministic---allows every embedding to be precomputed once and cached, which is what makes a multi-axis grid of experiments tractable. The architecture is realised in two independent codebases, CogniAligned and SER. CogniAligned is the full pipeline and the only stack that implements subword token alignment, whereas SER operates on segment-level representations and serves to check whether the fusion and Wav2Vec-pooling trends reproduce under a second implementation. Because the two stacks differ in their text encoder and training schedule, cross-stack numbers are read as directional agreement rather than exact reproduction.
+
+\begin{figure}[ht]
+\centering
+\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
+\caption{End-to-end architecture used in this thesis: frozen Wav2Vec~2.0 and BERT-family encoders produce acoustic and textual sequences, which are placed on a common index by the alignment step, combined by the sequence-to-sequence fusion module, and mapped to a task label by a lightweight head.}
+\label{fig:system_architecture}
+\end{figure}
+
+\subsubsection{Acoustic Encoder: Choice and Configuration}
+
+Audio is encoded by Wav2Vec~2.0 in its cross-lingual XLSR-300M configuration~\cite{baevski2020wav2vec}. The model consists of a convolutional feature encoder that maps the raw 16\,kHz waveform to a sequence of latent frames at roughly 20\,ms resolution (about 50 frames per second), followed by a 24-layer transformer context network that contextualises these frames into 1024-dimensional hidden states. The XLSR variant has approximately 300 million parameters and was pretrained on around 436{,}000 hours of unlabelled speech spanning 128 languages, which gives it the cross-lingual robustness needed to serve both the English ADReSSo task and the Spanish SPIN tasks with a single shared encoder rather than two language-specific models.
+
+The encoder is used purely as a frozen feature extractor: its weights are never updated, and the frame-level sequence $\mathbf{H}^{\mathrm{a}}$ is read directly from the transformer stack. How that sequence is formed is the Wav2Vec-pooling axis. The default, used as the controlled setting in every phase except the dedicated pooling study, takes the hidden states of the final transformer layer. The alternative learns one scalar weight per layer, normalises the weights with a softmax, and forms the representation as the weighted sum of all layer outputs. This is motivated by the well-documented observation that the layers of a self-supervised speech encoder specialise in different information---lower layers carry phonetic and speaker detail while higher layers carry more abstract content---so a learnable combination can expose cues that any single fixed layer discards. To further regularise training on the limited clinical data, the SER stack additionally applies on-the-fly acoustic data augmentation, including additive noise, reverberation, and speed perturbation, prior to feature extraction.
+
+\subsubsection{Text Encoder: Choice and Configuration}
+
+Text is encoded by a frozen transformer from the BERT family~\cite{devlin2019bert}, which turns the tokenised transcript into a sequence of contextual token-level embeddings $\mathbf{H}^{\mathrm{t}}$. The two implementations deliberately use different members of this family. CogniAligned uses DistilBERT~\cite{sanh2019distilbert}, a six-layer encoder distilled from BERT-base that retains most of its language-understanding capability at roughly half the parameters and inference cost, matching the original CogniAlign design. SER uses ModernBERT-base~\cite{warner2025modernbert}, a more recent encoder of about 149 million parameters trained on the order of two trillion tokens, with a native 8192-token context window, rotary positional embeddings, GeGLU activations, and an alternating local--global attention pattern that makes long-context encoding efficient.
+
+As with the acoustic encoder, the text encoder is frozen and its embeddings are precomputed. Holding it fixed within each stack ensures that the text representation is not a confound when fusion, alignment, or pooling is varied; the difference between the two stacks' text encoders is, however, one of the reasons cross-stack comparisons are interpreted as directional rather than as a controlled head-to-head.
+
+\subsubsection{Fusion Module}
+
+Before the two streams can be fused they must be placed on a common sequence index, because the acoustic sequence is far longer than the token sequence ($T_a \gg T_t$). CogniAligned resolves this by precomputing an aligned tensor in which each text position is paired with a pooled acoustic representation, and the three alignment schemes differ in how acoustic frames are assigned to text positions. The word-to-token baseline, inherited from CogniAlign~\cite{ortiz2025cognialign}, uses the word-level timestamps produced by the ASR step to gather the frames spanned by each spoken word and attach them to that word's text token. The two schemes proposed in this thesis operate one level finer, at the subword granularity produced by the text tokeniser. The \emph{uniform} scheme takes the frame span of each word and divides it evenly among the word's subword tokens, so that a word split into three tokens contributes three equal slices. The \emph{proportional} scheme instead divides the span in proportion to the character length of each subword token, on the assumption that longer subwords tend to occupy more of the spoken word and should therefore receive proportionally more acoustic frames. Both subword schemes yield a finer-grained audio--text correspondence than the word-level baseline, and the comparison among the three constitutes the alignment axis (Figure~\ref{fig:alignment_schemes}). SER does not align at the subword level: it fuses segment-level representations and therefore takes no part in the alignment ablation.
+
+\begin{figure}[ht]
+\centering
+\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
+\caption{Audio--text alignment schemes compared in this thesis: the CogniAlign word-to-token baseline, and the two proposed token-to-token schemes (uniform, which spreads each word's frames evenly across its subword tokens, and proportional, which allocates frames to tokens in proportion to their character length).}
+\label{fig:alignment_schemes}
+\end{figure}
+
+Operating on the aligned streams---or, in SER, on the segment-level streams---the fusion module produces the joint representation that is passed to the head. Seven fusion families are implemented and compared, summarised in Table~\ref{tab:fusion} and grouped into three mechanisms. The \textbf{self-attention} group treats the concatenated audio--text sequence as a single set of tokens and lets every position attend to every other: plain self-attention applies a single attention map, multi-head self-attention splits this into several parallel heads that can specialise in different relations, and the transformer-with-positional-encoding variant adds sinusoidal position information within a full transformer block so that sequence order is modelled explicitly~\cite{vaswani2017attention}. The \textbf{cross-attention} group keeps the modalities separate and lets one attend to the other, with one stream forming the queries and the other the keys and values: gated cross-attention adds a learned gate that scales the cross-modal contribution and suppresses noisy interactions, while bidirectional cross-attention performs the exchange in both directions so that each modality is refined by the other. The final family replaces attention entirely with a \textbf{Mamba} selective state-space block~\cite{gu2023mamba}, which mixes the sequence in linear time and offers a markedly different inductive bias from the quadratic attention mechanisms. Holding this catalogue fixed across both stacks is what lets the fusion axis be read as a property of the technique rather than of either implementation.
+
+\begin{table}[H]
+\centering
+\caption[Fusion families]{\footnotesize The seven sequence-to-sequence fusion families compared in the experiments, grouped by mechanism.}
+\label{tab:fusion}
+\footnotesize{
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Group} & \textbf{Fusion family} & \textbf{Core mechanism} \\ \midrule
+\multirow{3}{*}{Self-attention} & Self-attention & Single attention map over the concatenated sequence \\
+ & Multi-head self-attention & Parallel attention heads over the concatenated sequence \\
+ & Transformer + PE & Transformer block with explicit positional encoding \\
+\midrule
+\multirow{3}{*}{Cross-attention} & Cross-attention & One modality queries the other \\
+ & Gated cross-attention & Cross-attention with a learned gate on the cross-modal signal \\
+ & Bidirectional cross-attention & Cross-attention exchanged in both directions \\
+\midrule
+State-space & Mamba & Selective state-space mixing in linear time \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\subsubsection{Handcrafted Feature Extraction and Integration}
+
+In addition to the learned embeddings, the pipeline can incorporate a set of 55 handcrafted acoustic descriptors designed to capture fine-grained paralinguistic cues that are clinically interpretable but not easily recovered by a self-supervised encoder operating on the raw waveform. The feature set is adapted from the NeuroXVocal framework~\cite{ntampakis2025neuroxvocal}, which demonstrated its effectiveness on the ADReSSo benchmark, and extended to the SPIN cohort in our companion paper~\cite{esteve2025speechadppa}. Features are extracted with \texttt{librosa} and with Praat-based analysis via \texttt{parselmouth}, and span the five groups listed in Table~\ref{tab:handcrafted}: temporal and pause statistics, acoustic--prosodic measures, voice-quality measures, spectral descriptors, and cepstral coefficients.
+% TODO: confirm whether the final thesis uses this 55-feature librosa/Praat set or the OpenSMILE eGeMAPS set; update this subsection accordingly.
+
+\begin{table}[H]
+\centering
+\caption[Handcrafted acoustic features]{\footnotesize The five groups of handcrafted acoustic descriptors (55 features in total), extracted with \texttt{librosa} and Praat (\texttt{parselmouth}).}
+\label{tab:handcrafted}
+\footnotesize{
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Group} & \textbf{Descriptors} \\ \midrule
+Temporal \& pause   & Total speech duration, speech-to-pause ratio, number of pauses, \\
+                    & pause-duration statistics (mean, maximum, SD) \\
+Acoustic--prosodic  & Pitch (mean, SD, range), intensity, speaking rate, articulation rate \\
+Voice quality       & Local jitter, local shimmer, harmonics-to-noise ratio \\
+Spectral            & Spectral-centroid statistics, zero-crossing rate, formants F1--F3 (mean, SD) \\
+Cepstral            & First 13 MFCCs (mean, SD) \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+These groups are motivated by the clinical literature: pause-related measures such as a higher pause rate, longer pauses, and a lower speech-to-pause ratio are salient markers in Alzheimer's disease, reflecting difficulties in lexical retrieval, speech planning, and fluency, while voice-quality measures such as jitter and shimmer capture subtle phonatory instabilities associated with cognitive decline. To prevent leakage, all 55 features are Z-score normalised per dimension using statistics computed on the training split of each fold. Their point of injection depends on the stack: in SER the feature vector is concatenated with the multimodal sequence at the input of the attention-pooling layer, so that pooling can weigh the handcrafted cues alongside every temporal frame, whereas in CogniAligned they follow a late-fusion strategy and are concatenated to the already-pooled fixed-size embedding immediately before the classification head, leaving the cross-attention free to operate only on the self-supervised representations. In either case the descriptors enter only as the optional fourth modality of the modality ablation; the controlled defaults for the fusion, alignment, and pooling studies exclude them, so that any reported gain is attributable to the handcrafted features alone.
+
+\subsubsection{Classification and Regression Heads}
+
+The fused sequence is reduced to a single fixed-size vector by a pooling operation---mean pooling in CogniAligned and learned attention pooling in SER---and this vector is passed to a small multi-layer perceptron that outputs the class logits, trained with a cross-entropy objective. The head is kept intentionally shallow so that the bulk of the modelling capacity lies in the frozen encoders and the fusion module under study; this keeps the trainable parameter count low and makes the comparison between fusion families fair, since differences in accuracy can then be attributed to the fusion mechanism rather than to head capacity. The output layer follows the task, with two units for the binary AD and amyloid-$\beta$ tasks and three for PPA variant classification. All three targets in this thesis are categorical, so the head is always a classifier; the same design would extend directly to a regression target---for instance a continuous amyloid burden rather than a binary status---by replacing the final layer with a single linear unit and the cross-entropy objective with a regression loss, a possibility noted here only to delimit the scope of the present work.
+
+\subsection{Training Protocol}
+\label{ssec:training}
+
+All models are trained under stratified five-fold cross-validation applied independently to each dataset, so that every fold preserves the class balance of its cohort. The two implementations use schedules tuned to their respective encoders. CogniAligned is optimised with a learning rate of $2\times10^{-5}$ for up to two hundred epochs with early stopping on the validation fold using a patience of fifteen epochs, while SER uses a learning rate of $5\times10^{-5}$ for twenty-five epochs. To keep training and inference tractable with frozen encoders, embeddings are precomputed and cached: CogniAligned stores token-aligned tensors as precomputed \texttt{.pt} files, and SER maintains an embedding cache. This caching was added to SER after its initial implementation, so all reported inference times correspond to the final cached configuration.
+
+\subsection{Evaluation Metrics and Baselines}
+\label{ssec:evaluation}
+
+The primary metric is classification accuracy, reported in a manner consistent with each cohort's evaluation protocol. For ADReSSo we report both the mean cross-validated validation accuracy and the accuracy on the official \texttt{test-dist} partition, the latter being the headline figure comparable with the challenge literature. For the two Spanish tasks, which have no official test set, we report validation accuracy only, computed as the mean of the per-fold best validation accuracy across the five folds, and we never substitute an artificially held-out split for the missing test partition. Alongside accuracy, per-sample validation and test inference times are recorded to characterise the compute cost of each technique, since some fusion families are substantially heavier than others. The word-to-token alignment of CogniAlign~\cite{ortiz2025cognialign} serves as the literature baseline against which the two proposed token-to-token schemes are measured, and challenge-reported systems on ADReSSo provide the external point of comparison for the AD task. Unless stated otherwise, results are reported as point estimates without significance testing, a limitation revisited in the Discussion.
 
 \input{result}
 

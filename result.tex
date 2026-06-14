@@ -1,28 +1,40 @@
 \clearpage\section{Results}
+\label{sec:experiments}
 
-{This should include your data analysis and findings}
+This chapter reports the experimental programme defined in Section~\ref{sec:methodology}. Results are presented first per task, in the order Alzheimer's disease classification (ADReSSo), amyloid-$\beta$ status prediction (SPIN), and PPA variant classification (WAB), and then as cross-cutting ablation studies that isolate the contribution of each design axis. For ADReSSo both cross-validated validation accuracy and the official \texttt{test-dist} accuracy are reported; for the two Spanish tasks, which have no official test partition, only cross-validated validation accuracy is reported (Section~\ref{ssec:evaluation}). All figures are drawn from the experiment result tables and are reported as point estimates without significance testing.
 
-\begin{table}[H]
-\centering
-\caption[This is the caption]{ \footnotesize This is the other caption. Since the trial size of the experiments showed is one second, the number of \textit{Target} and \textit{Impostor} data corresponds to number of trials or seconds}
-\label{tab:data_partition}
-\footnotesize{
-\begin{tabular}{@{}llcccc@{}}
-\toprule
-\textbf{Dataset}         & \multicolumn{1}{c}{\textbf{Label}} & \textbf{Train} & \textbf{Validation} & \textbf{Develop} & \textbf{Test} \\ \midrule
-\midrule
-\multirow{3}{*}{First} & Target   & $135$ & $45$  & $30$  & $30$  \\
-                         & Impostor & $5,220$    & $1,740$ & $1,890$   & $2,880$    \\
-\cmidrule(lr){3-5} \cmidrule(l){6-6}
-                         & \#Subjects          & \multicolumn{3}{c}{$31$} & $12$ \\
-\midrule
-\multirow{3}{*}{Second}  & Target   & $144$ & $80$  & $48$  & $48$  \\
-                         & Impostor & $2,014$    & $1,119$    & $1,343$    & $1,545$ \\
-\cmidrule(lr){3-5} \cmidrule(l){6-6}
-                         & \#Subjects   & \multicolumn{3}{c}{$15$} & $5$ \\ 
-\bottomrule
-\end{tabular}
-}
-\end{table}
+\subsection{Alzheimer's Disease Classification (ADReSSo)}
+\label{ssec:res_adresso}
 
-\include{codi_tempdistrib}
+% TODO: Populate from thesis_context/02_results/ (English ADReSSo rows).
+% Report validation and official test-dist accuracy for the recommended
+% configuration and the relevant baselines. Do not fabricate numbers.
+This section reports performance on the English ADReSSo benchmark, the only task with an official held-out test partition, against challenge-reported systems as the external point of comparison.
+
+\subsection{Amyloid-$\beta$ Status Prediction (SPIN)}
+\label{ssec:res_amyloid}
+
+% TODO: Populate from thesis_context/02_results/ (Spanish *_es amyloid rows).
+% Validation accuracy only; never construct an artificial test split.
+This section reports validation accuracy on the Spanish SPIN amyloid-$\beta$ task, including the comparison between the word-to-token alignment baseline and the proposed token-to-token schemes.
+
+\subsection{PPA Variant Classification (WAB)}
+\label{ssec:res_ppa}
+
+% TODO: Populate from thesis_context/02_results/ (Spanish *_es PPA rows).
+% Validation accuracy only; interpret with caution given small, imbalanced classes.
+This section reports validation accuracy on the three-class PPA variant task, interpreted with caution given the small and imbalanced per-class subject counts.
+
+\subsection{Ablation Studies}
+\label{ssec:res_ablation}
+
+% TODO: Populate each axis from the corresponding result table in
+% thesis_context/02_results/: modality_ablation, step_b_results (fusion),
+% wav2vec_layer_ablation, alignment_tier_a / alignment_wv2vec_ablation,
+% res_model/res_model_feature_extractor_ablation, and the layer-mixer rows.
+This section consolidates the per-axis ablations across the three tasks, following the staged sequence of Section~\ref{ssec:ablation_protocol}: modality, fusion family, Wav2Vec pooling, the combined alignment-by-pooling study, the adaptive layer mixer, and the single-factor feature-extractor ablation. Each axis is varied while the others are held at their controlled defaults, and the fusion and Wav2Vec-pooling trends are checked for reproduction under the second, independent stack.
+
+\subsection{Error Analysis}
+\label{ssec:res_error}
+
+A detailed error analysis, including per-class confusion matrices for the three-class PPA task and an inspection of misclassified ADReSSo and amyloid cases, is left as future work. The present study reports point-estimate accuracies without confusion-level breakdowns or significance testing; characterising systematic failure modes (for example, confusion between the logopenic and non-fluent PPA variants, or the influence of ASR transcription errors on the text stream) would require the per-sample prediction logs and is identified here as a direction for subsequent analysis rather than reported with fabricated figures.

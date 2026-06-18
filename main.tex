@@ -162,7 +162,7 @@ The textual modality is derived from the audio rather than from gold manual tran
 \subsection{System Architecture}
 \label{ssec:architecture}
 
-The model follows a two-stream design in which audio and text are embedded independently by frozen self-supervised encoders, aligned onto a common sequence index, combined by a sequence-to-sequence fusion module, and finally pooled and mapped to a task label by a lightweight head (Figure~\ref{fig:system_architecture}). Each stage corresponds to one of the design axes introduced in Section~\ref{ssec:problem_formulation}: the encoders and their pooling fix the acoustic and textual representations, the alignment step determines how the two time bases are reconciled, and the fusion module determines how the aligned streams interact. The ablation programme depends on this separation: a single axis can be changed while the rest of the pipeline stays fixed.
+The model follows a two-stream design in which audio and text are embedded independently by frozen self-supervised encoders, aligned onto a common sequence index, combined by a sequence-to-sequence fusion module, and finally pooled and mapped to a task label by a shallow head (Figure~\ref{fig:system_architecture}). Each stage corresponds to one of the design axes introduced in Section~\ref{ssec:problem_formulation}: the encoders and their pooling fix the acoustic and textual representations, the alignment step determines how the two time bases are reconciled, and the fusion module determines how the aligned streams interact. The ablation programme depends on this separation: a single axis can be changed while the rest of the pipeline stays fixed.
 
 Both encoders are kept frozen throughout. This is a modelling choice, not a computational shortcut: freezing holds the trainable parameter count in the low millions, concentrates learning capacity in the fusion module under study, and reduces the risk of overfitting the small clinical cohorts. It has a practical payoff as well. Once the encoder outputs are deterministic, every embedding can be computed once and cached, and that cache is what makes a multi-axis grid of experiments tractable at all.
 
@@ -171,7 +171,7 @@ The architecture is realised across three complementary implementations. CogniAl
 \begin{figure}[ht]
 \centering
 \fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
-\caption{End-to-end architecture used in this thesis: frozen Wav2Vec~2.0 and BERT-family encoders produce acoustic and textual sequences, which are placed on a common index by the alignment step, combined by the sequence-to-sequence fusion module, and mapped to a task label by a lightweight head.}
+\caption{End-to-end architecture used in this thesis: frozen Wav2Vec~2.0 and BERT-family encoders produce acoustic and textual sequences, which are placed on a common index by the alignment step, combined by the sequence-to-sequence fusion module, and mapped to a task label by a shallow head.}
 \label{fig:system_architecture}
 \end{figure}
 

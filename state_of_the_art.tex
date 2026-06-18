@@ -25,10 +25,10 @@ More recent analyses revisit classical machine-learning baselines (random forest
 
 Representation learning replaces brittle front-ends with hierarchical embeddings trained either supervised end-to-end or semi-supervised with objectives aligned to phonetic/lexical structure.
 
-\subsubsection{Self-supervised acoustic encoders: wav2vec 2.0}
+\subsubsection{Self-supervised acoustic encoders: Wav2Vec~2.0}
 
 In speech processing broadly, self-supervised pre-training of transformer acoustic models learns frame-level features transferable across languages and domains with comparatively modest labelled downstream data.
-The wav2vec~2.0 architecture~\cite{baevski2020wav2vec} illustrates this paradigm.
+The Wav2Vec~2.0 architecture~\cite{baevski2020wav2vec} illustrates this paradigm.
 A multi-layer convolutional feature encoder first transforms raw waveform samples into a sequence of latent speech representations at approximately 20-millisecond resolution.
 These latent vectors are then contextualised by a transformer encoder that attends across the full temporal extent of the utterance.
 During pre-training, a proportion of the latent frames is masked, and the model solves a contrastive task: for each masked position, it must identify the true quantised representation among distractors sampled from the same utterance.
@@ -41,7 +41,7 @@ Related self-supervised models, notably HuBERT~\cite{hsu2021hubert} and WavLM~\c
 \begin{figure}[ht]
 \centering
 \fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
-\caption{Architecture of the wav2vec~2.0 self-supervised speech encoder.}
+\caption{Architecture of the Wav2Vec~2.0 self-supervised speech encoder.}
 \label{fig:wav2vec_architecture}
 \end{figure}
 
@@ -140,7 +140,7 @@ Because the state update is recurrent rather than pairwise, computational cost g
 \subsubsection{Cross-modal alignment}
 
 Orthogonal to the choice of fusion mechanism, \emph{cross-modal alignment} addresses the problem of establishing temporal correspondence between streams that operate at fundamentally different resolutions.
-Acoustic encoders such as wav2vec~2.0 produce one contextual frame approximately every 20 milliseconds, whereas text encoders emit one embedding per subword token; a single spoken word may span dozens of acoustic frames while simultaneously being split into multiple subword units by the tokeniser.
+Acoustic encoders such as Wav2Vec~2.0 produce one contextual frame approximately every 20 milliseconds, whereas text encoders emit one embedding per subword token; a single spoken word may span dozens of acoustic frames while simultaneously being split into multiple subword units by the tokeniser.
 Without explicit alignment, the fusion layer must learn this correspondence from limited labelled data, risking wasted capacity and spurious associations between acoustically and textually distant positions~\cite{ortiz2025cognialign}.
 The CogniAlign architecture~\cite{ortiz2025cognialign} addresses this with a word-to-token alignment strategy.
 Word-level timestamps are first obtained from the automatic speech recognition step (Whisper), determining which acoustic frames correspond to each spoken word.

@@ -12,7 +12,7 @@ Compared to imaging or fluid biomarkers, voice can be acquired frequently, remot
 Structured elicitation tasks such as the Picnic Scene picture description from the Western Aphasia Battery~\cite{kertesz1982wab} are already part of routine neuropsychological batteries, and recordings from these tasks can be processed computationally without additional clinical instrumentation.
 
 Early computational approaches to cognitive assessment from speech relied on handcrafted linguistic descriptors and shallow acoustic statistics, demonstrating feasibility but limited generalisation~\cite{fraser2016linguistic}.
-The shift toward deep learning, particularly self-supervised speech encoders such as wav2vec~2.0~\cite{baevski2020wav2vec} and contextual text models from the BERT family~\cite{devlin2019bert}, has substantially improved representational capacity.
+The shift toward deep learning, particularly self-supervised speech encoders such as Wav2Vec~2.0~\cite{baevski2020wav2vec} and contextual text models from the BERT family~\cite{devlin2019bert}, has substantially improved representational capacity.
 Community benchmarks such as the ADReSSo challenge~\cite{luz2021adresso} have enabled systematic comparison under controlled conditions, and surveys of this literature consistently report that multimodal systems combining acoustic and textual information outperform either modality alone~\cite{ding2024speechsurvey}.
 
 Despite this progress, most published pipelines report end-to-end accuracy figures that conflate several design choices simultaneously: the modality mix, the fusion architecture, the strategy for aligning acoustic frames with text tokens, and the configuration of the self-supervised encoder.
@@ -23,7 +23,7 @@ Spanish-speaking clinical cohorts with pathology-confirmed labels exist through 
 \subsection{Motivation and objectives}
 
 This thesis is motivated by the observation that, although multimodal speech-based systems for cognitive assessment have shown promising results, the field lacks a systematic understanding of which individual design choices drive performance.
-Published systems vary simultaneously in modality, fusion mechanism, audio-text alignment strategy, and encoder configuration, making it impossible to attribute gains to any single technique.
+Published systems vary simultaneously in modality, fusion mechanism, audio--text alignment strategy, and encoder configuration, making it impossible to attribute gains to any single technique.
 A structured ablation programme, in which each axis is varied while the others are held at controlled defaults, is needed to disentangle these contributions and guide future system design.
 
 Preliminary investigations into deep learning approaches for AD and PPA classification on the ADReSSo and SPIN cohorts were reported in a companion study~\cite{esteve2025speechadppa}; the present thesis extends that work by decomposing the pipeline into individually ablatable design choices.

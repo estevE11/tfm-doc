@@ -78,15 +78,51 @@ These results carry a caveat, though. They stay sensitive to sample size and lab
 \subsection{Multimodal fusion: pooling, cross-attention, and temporal alignment}
 
 Multimodal classifiers must reconcile wildly different sampling rates: acoustic frames at millisecond resolution versus word or sub-word tokens at comparatively coarse timestamps derived from automatic speech recognition~\cite{ding2024speechsurvey}.
-Three broad paradigms describe how audio and text modalities are combined~\cite{ding2024speechsurvey}.
+Three broad paradigms describe how audio and text modalities are combined (Figure~\ref{fig:fusion_paradigms})~\cite{ding2024speechsurvey}.
 In early fusion, modality embeddings are pooled along the temporal axis and concatenated into a single fixed-length vector before classification.
 In late fusion, modality-specific classifiers are trained independently and their outputs are combined at the decision level.
 Intermediate fusion, the paradigm most relevant to this thesis, processes both modalities jointly through sequence-to-sequence layers that operate on the combined representation before the classification head~\cite{esteve2025speechadppa}.
 
 \begin{figure}[ht]
 \centering
-\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
-\caption{Overview of the three multimodal fusion paradigms: early, intermediate, and late.}
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[
+  font=\footnotesize, >=Stealth,
+  b/.style={draw, rounded corners, minimum height=7mm, text width=17mm, align=center, inner sep=2pt}
+]
+% ===== Early =====
+\node at (1.4,5.2) {\textbf{Early fusion}};
+\node[b] (ea) at (0.5,4.2) {Audio emb.};
+\node[b] (et) at (2.6,4.2) {Text emb.};
+\node[b] (econc) at (1.55,2.9) {Pool $+$ concat};
+\node[b] (eclf) at (1.55,1.7) {Classifier};
+\node (elab) at (1.55,0.8) {Label};
+\draw[->] (ea)--(econc); \draw[->] (et)--(econc); \draw[->] (econc)--(eclf); \draw[->] (eclf)--(elab);
+% ===== Intermediate (highlighted) =====
+\begin{scope}[on background layer]
+\fill[orange!8, rounded corners] (4.35,0.4) rectangle (8.05,5.6);
+\end{scope}
+\node at (6.2,5.2) {\textbf{Intermediate fusion}};
+\node at (6.2,4.78) {\scriptsize (this thesis)};
+\node[b] (ia) at (5.3,3.95) {Audio seq.};
+\node[b] (it) at (7.4,3.95) {Text seq.};
+\node[b, fill=orange!18] (ifus) at (6.35,2.75) {Seq2seq fusion};
+\node[b] (ipool) at (6.35,1.7) {Pool};
+\node[b] (iclf) at (6.35,0.85) {Classifier};
+\node (ilab) at (6.35,0.1) {Label};
+\draw[->] (ia)--(ifus); \draw[->] (it)--(ifus); \draw[->] (ifus)--(ipool); \draw[->] (ipool)--(iclf); \draw[->] (iclf)--(ilab);
+% ===== Late =====
+\node at (10.9,5.2) {\textbf{Late fusion}};
+\node[b] (la) at (10.0,4.2) {Audio};
+\node[b] (lt) at (12.1,4.2) {Text};
+\node[b] (lca) at (10.0,2.9) {Classifier A};
+\node[b] (lct) at (12.1,2.9) {Classifier B};
+\node[b] (lcomb) at (11.05,1.7) {Combine logits};
+\node (llab) at (11.05,0.8) {Label};
+\draw[->] (la)--(lca); \draw[->] (lt)--(lct); \draw[->] (lca)--(lcomb); \draw[->] (lct)--(lcomb); \draw[->] (lcomb)--(llab);
+\end{tikzpicture}%
+}
+\caption{The three multimodal fusion paradigms. Early fusion pools and concatenates the modality embeddings into one vector before a single classifier; late fusion trains a classifier per modality and combines their outputs; intermediate fusion, the paradigm used in this thesis, processes both sequences jointly through a sequence-to-sequence module before pooling and classification.}
 \label{fig:fusion_paradigms}
 \end{figure}
 
@@ -114,7 +150,7 @@ Because the state update is recurrent rather than pairwise, computational cost g
 Orthogonal to the choice of fusion mechanism, \emph{cross-modal alignment} addresses the problem of establishing temporal correspondence between streams that operate at fundamentally different resolutions.
 Acoustic encoders such as Wav2Vec~2.0 produce one contextual frame approximately every 20 milliseconds, whereas text encoders emit one embedding per subword token; a single spoken word may span dozens of acoustic frames while simultaneously being split into multiple subword units by the tokeniser.
 Without explicit alignment, the fusion layer must learn this correspondence from limited labelled data, risking wasted capacity and spurious associations between acoustically and textually distant positions~\cite{ortiz2025cognialign}.
-The CogniAlign architecture~\cite{ortiz2025cognialign} addresses this with a word-to-token alignment strategy.
+The CogniAlign architecture~\cite{ortiz2025cognialign} addresses this with a word-to-token alignment strategy (Figure~\ref{fig:cross_modal_alignment}).
 Word-level timestamps are first obtained from the automatic speech recognition step (Whisper), determining which acoustic frames correspond to each spoken word.
 These word boundaries are then mapped to the subword tokenisation of the text encoder, pairing each textual token with the acoustic frames of the word from which it derives.
 The aligned representations are then fused by cross-attention. CogniAlign introduces bidirectional cross-attention for this stage, although in its own experiments a gated cross-attention variant reported the strongest result; in either form, temporal synchronisation encourages the network to attend to co-occurring acoustic evidence (such as jitter, spectral tilt, or prolonged closures) alongside the corresponding lexical content rather than to correlates from unrelated temporal positions.
@@ -123,8 +159,33 @@ This thesis builds on the CogniAlign alignment idea but generalises it along two
 
 \begin{figure}[ht]
 \centering
-\fbox{\parbox{0.9\linewidth}{\vspace{5cm}\centering\small\textit{[Figure to be added]}\vspace{5cm}}}
-\caption{Cross-modal alignment between acoustic frames and text tokens, comparing unsynchronised input (top) with word-to-token aligned input (bottom).}
+\resizebox{0.9\linewidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize, >=Stealth]
+% ===== Top: unsynchronised =====
+\node[anchor=east] at (-0.3,3.25) {\textbf{Unsynchronised}};
+\foreach \i in {1,...,12}{\fill[black!10] (0.5*\i-0.5,3.0) rectangle (0.5*\i,3.5); \draw (0.5*\i-0.5,3.0) rectangle (0.5*\i,3.5);}
+\node[anchor=west] at (6.1,3.25) {\scriptsize 12 acoustic frames};
+\foreach \j/\w in {0/the, 1/boy, 2/is, 3/falling}{\node[draw, rounded corners, minimum width=11mm, minimum height=5mm] (u\j) at (0.9+1.5*\j,1.9) {\w};}
+\node[anchor=west] at (6.1,1.9) {\scriptsize 4 text tokens};
+\draw[densely dashed, gray] (0.25,3.0)--(u1); \draw[densely dashed, gray] (3.25,3.0)--(u0);
+\draw[densely dashed, gray] (5.75,3.0)--(u3); \draw[densely dashed, gray] (2.25,3.0)--(u2.north);
+\node at (3.0,2.5) {\scriptsize\itshape no fixed correspondence};
+% ===== Bottom: aligned =====
+\node[anchor=east] at (-0.3,-1.05) {\textbf{word$\rightarrow$token aligned}};
+\foreach \i in {1,2}{\fill[blue!25] (0.5*\i-0.5,-1.3) rectangle (0.5*\i,-0.8);}
+\foreach \i in {3,4,5,6}{\fill[green!30] (0.5*\i-0.5,-1.3) rectangle (0.5*\i,-0.8);}
+\foreach \i in {7,8,9}{\fill[orange!35] (0.5*\i-0.5,-1.3) rectangle (0.5*\i,-0.8);}
+\foreach \i in {10,11,12}{\fill[red!22] (0.5*\i-0.5,-1.3) rectangle (0.5*\i,-0.8);}
+\foreach \i in {1,...,12}{\draw (0.5*\i-0.5,-1.3) rectangle (0.5*\i,-0.8);}
+\node[draw, rounded corners, fill=blue!25, minimum width=8mm, minimum height=5mm] (aw0) at (0.5,-2.4) {the};
+\node[draw, rounded corners, fill=green!30, minimum width=8mm, minimum height=5mm] (aw1) at (2.0,-2.4) {boy};
+\node[draw, rounded corners, fill=orange!35, minimum width=8mm, minimum height=5mm] (aw2) at (4.0,-2.4) {is};
+\node[draw, rounded corners, fill=red!22, minimum width=8mm, minimum height=5mm] (aw3) at (5.5,-2.4) {falling};
+\draw[->] (0.5,-1.3)--(aw0); \draw[->] (2.0,-1.3)--(aw1); \draw[->] (4.0,-1.3)--(aw2); \draw[->] (5.5,-1.3)--(aw3);
+\node[anchor=west] at (6.1,-1.8) {\scriptsize each word's frames pooled to its token};
+\end{tikzpicture}%
+}
+\caption{Cross-modal alignment between acoustic frames and text tokens, comparing unsynchronised input (top), where the two streams have no fixed correspondence, with word-to-token aligned input (bottom), where the frames spanned by each spoken word are pooled and attached to that word's token.}
 \label{fig:cross_modal_alignment}
 \end{figure}
 

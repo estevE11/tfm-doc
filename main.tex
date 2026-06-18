@@ -300,7 +300,7 @@ Before the features are used they are normalised, and the normalisation is compu
 
 Integration follows a late-fusion design. The normalised 55-dimensional vector is first projected to the model's 768-dimensional hidden width, then combined with the multimodal stream at one of two late points, prepended as an additional token to the sequence that enters the fusion module, or concatenated to the already-pooled fixed-size embedding immediately before the classification head. Either way the descriptors join only after the self-supervised streams have been formed, so the fusion and cross-attention machinery still operate on the learned representations alone and the handcrafted cues act as an interpretable side-channel rather than something the attention has to disentangle from the waveform.
 
-The descriptors are ablated explicitly in the modality study (Step A), where the audio-plus-text-plus-features cell is compared against the audio-plus-text cell so that any contribution of the handcrafted features is measured against an otherwise identical model. Beyond that controlled comparison, the CogniAligned ablation grids keep the 55-feature vector enabled by default whenever the cohort's feature CSV is available, so the fusion, alignment, and pooling studies are run on top of the audio-plus-text-plus-features input rather than with the features removed.
+The descriptors are ablated explicitly in the modality study, where the audio-plus-text-plus-features cell is compared against the audio-plus-text cell so that any contribution of the handcrafted features is measured against an otherwise identical model. Beyond that controlled comparison, the CogniAligned ablation grids keep the 55-feature vector enabled by default whenever the cohort's feature CSV is available, so the fusion, alignment, and pooling studies are run on top of the audio-plus-text-plus-features input rather than with the features removed.
 
 \subsubsection{Classification Heads}
 
@@ -321,29 +321,11 @@ All models are trained under stratified five-fold cross-validation applied indep
 \subsection{Ablation Protocol}
 \label{ssec:ablation_protocol}
 
-The experiments isolate the contribution of each design axis by varying one axis at a time while the others are pinned to controlled defaults, so any change in performance can be attributed to the manipulated axis. In the CogniAligned grids those defaults are the final-layer Wav2Vec representation, word-to-token alignment, and bidirectional cross-attention fusion, with audio-plus-text input and the 55 handcrafted acoustic features kept on whenever the cohort's feature CSV is available. The only cells without features are the Step A modality cells, which exist precisely to isolate audio, text, or their combination.
+The experiments isolate the contribution of each design axis by varying one axis at a time while the others are pinned to controlled defaults, so any change in performance can be attributed to the manipulated axis. In the CogniAligned grids those defaults are the final-layer Wav2Vec representation, word-to-token alignment, and bidirectional cross-attention fusion, with audio-plus-text input and the 55 handcrafted acoustic features kept on whenever the cohort's feature CSV is available. The only cells without features are the modality-study cells, which exist precisely to isolate audio, text, or their combination.
 
-The programme runs as a staged sequence. A modality study (Step A) comes first, then a fusion-family comparison (Step B); an alignment study (Tier A) compares the three schemes under a fixed fusion (bidirectional cross-attention or Mamba) at the final Wav2Vec layer; a pooling study (WvLayer) contrasts the final layer with a learnable weighted sum; and a combined study (Align$\times$Wv) crosses the alignment schemes with weighted pooling at bidirectional cross-attention. The strongest per-axis choices are then consolidated and validated in \texttt{res\_model}, which additionally carries the single-factor layer-mixer (Section~\ref{sssec:pooling}) and encoder (Section~\ref{sssec:feature_extractors}) studies that the primitive stacks cannot express cleanly. These five stage names are used consistently from here on; Table~\ref{tab:experiment_map} fixes each one to the design axis it isolates and to the results table that reports it.
+The programme runs as a staged sequence. The modality study comes first, then the fusion study; the alignment study compares the three schemes under a fixed fusion (bidirectional cross-attention or Mamba) at the final Wav2Vec layer; the layer-pooling study contrasts the final layer with a learnable weighted sum; and a combined alignment--pooling study crosses the alignment schemes with weighted pooling at bidirectional cross-attention. The strongest per-axis choices are then consolidated and validated in \texttt{res\_model}, which additionally carries the single-factor layer-mixer (Section~\ref{sssec:pooling}) and encoder (Section~\ref{sssec:feature_extractors}) studies that the primitive stacks cannot express cleanly. The same study names are used in the results (Section~\ref{sec:experiments}), one table per axis.
 
-\begin{table}[H]
-\centering
-\caption[Mapping of experiment stages to results]{\footnotesize The five staged ablations, the design axis each isolates, and the results table in which it is reported. These names label the same experiments wherever they recur in the thesis. ``Tier~A'' and ``Align$\times$Wv'' are the alignment stages (at a fixed fusion, and crossed with weighted pooling, respectively); ``WvLayer'' is the Wav2Vec pooling stage.}
-\label{tab:experiment_map}
-\footnotesize{
-\begin{tabular}{@{}lll@{}}
-\toprule
-\textbf{Stage} & \textbf{Design axis isolated} & \textbf{Reported in} \\ \midrule
-Step A & Modality (audio, text, both, $+$features) & Table~\ref{tab:res_modality} \\
-Step B & Fusion family (seven) & Table~\ref{tab:res_fusion} \\
-Tier A & Alignment scheme at a fixed fusion & Table~\ref{tab:res_alignment} \\
-WvLayer & Wav2Vec pooling (final vs.\ weighted) & Table~\ref{tab:res_wav2vec_pool} \\
-Align$\times$Wv & Alignment $\times$ weighted pooling & Tables~\ref{tab:res_alignment}, \ref{tab:res_wav2vec_pool} \\
-\bottomrule
-\end{tabular}
-}
-\end{table}
-
-SER plays a narrower part: it replicates only the fusion (Step B) and Wav2Vec-pooling (WvLayer) trends and has no alignment axis. As noted above, its figures are read as directional support for the CogniAligned trends, not a head-to-head comparison.
+SER plays a narrower part: it replicates only the fusion and layer-pooling trends and has no alignment axis. As noted above, its figures are read as directional support for the CogniAligned trends, not a head-to-head comparison.
 
 \subsection{Evaluation Metrics and Baselines}
 \label{ssec:evaluation}

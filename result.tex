@@ -90,8 +90,30 @@ Fusion is the axis with the widest spread (Table~\ref{tab:res_fusion}, shown gra
 
 \begin{figure}[htbp]
 \centering
-\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
-\caption{Validation accuracy of the fusion families on the three tasks (values from Table~\ref{tab:res_fusion}). The cross-attention family leads on every task, while Mamba's drop to chance on PPA stands out as the clearest outlier.}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}
+\begin{axis}[
+    width=\linewidth, height=6.8cm,
+    ybar=1pt, bar width=5pt,
+    ymin=50, ymax=92,
+    ylabel={Validation accuracy (\%)},
+    ylabel near ticks,
+    symbolic x coords={Concat,Mean,Self-attn,Transf.+PE,MH self-attn,Cross,Gated cross,Bi-cross,Mamba},
+    xtick=data,
+    x tick label style={rotate=40,anchor=east,font=\footnotesize},
+    ytick={50,60,70,80,90},
+    enlarge x limits=0.06,
+    ymajorgrids, grid style={gray!20},
+    legend style={at={(0.5,1.02)},anchor=south,legend columns=3,font=\footnotesize,draw=none},
+]
+\addplot[fill=blue!55,draw=blue!55] coordinates {(Concat,64.12)(Mean,64.12)(Self-attn,61.26)(Transf.+PE,78.05)(MH self-attn,75.85)(Cross,81.00)(Gated cross,82.88)(Bi-cross,81.64)(Mamba,77.49)};
+\addplot[fill=orange!75,draw=orange!75] coordinates {(Concat,54.10)(Mean,54.10)(Self-attn,54.09)(Transf.+PE,59.04)(MH self-attn,66.66)(Cross,73.67)(Gated cross,73.46)(Bi-cross,72.43)(Mamba,52.57)};
+\addplot[fill=teal!65,draw=teal!65] coordinates {(Concat,66.83)(Mean,66.83)(Self-attn,68.65)(Transf.+PE,80.58)(MH self-attn,84.22)(Cross,86.34)(Gated cross,86.34)(Bi-cross,87.23)(Mamba,85.40)};
+\legend{Amyloid, PPA, ADReSSo}
+\end{axis}
+\end{tikzpicture}%
+}
+\caption[Fusion-family accuracy across tasks]{Validation accuracy of the fusion families on the three tasks (values from Table~\ref{tab:res_fusion}). The cross-attention family leads on every task, while Mamba's drop to chance on PPA stands out as the clearest outlier.}
 \label{fig:res_fusion_bar}
 \end{figure}
 
@@ -99,8 +121,34 @@ This ranking is the main trend the second, independent SER stack was built to ch
 
 \begin{figure}[htbp]
 \centering
-\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
-\caption{Validation accuracy against per-sample inference time for the fusion families (Step~B, ADReSSo). Cross-attention pairs high accuracy with low cost in the precomputed-embedding pipeline; absolute timings depend on whether the encoders are cached or run in the loop.}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}
+\begin{axis}[
+    width=\linewidth, height=7cm,
+    xlabel={Per-sample validation inference time (ms)},
+    ylabel={Validation accuracy (\%)},
+    xmin=-0.1, xmax=2.0, ymin=73, ymax=90,
+    ymajorgrids, grid style={gray!20},
+    scatter/classes={a={mark=*,blue!60}},
+]
+\addplot[
+    scatter, only marks, mark=*, mark size=2.4pt,
+    point meta=explicit symbolic,
+    nodes near coords, nodes near coords align={anchor=west},
+    every node near coord/.append style={font=\scriptsize},
+] coordinates {
+    (1.06,75.70) [Self-attn]
+    (0.05,75.66) [MH self-attn]
+    (1.68,83.01) [Transf.+PE]
+    (0.40,86.63) [Cross]
+    (0.64,86.61) [Gated cross]
+    (0.59,84.79) [Bi-cross]
+    (0.96,88.44) [Mamba]
+};
+\end{axis}
+\end{tikzpicture}%
+}
+\caption[Accuracy versus inference time]{Validation accuracy against per-sample inference time for the fusion families in the precomputed-embedding (CogniAligned) pipeline (Step~B, ADReSSo). Cross-attention pairs high accuracy with low cost; every family stays under two milliseconds because the encoder outputs are cached, whereas running the encoders in the loop raises per-sample cost by roughly two orders of magnitude.}
 \label{fig:res_compute}
 \end{figure}
 
@@ -137,8 +185,27 @@ The adaptive layer mixer, evaluated only in the unified implementation, sharpens
 
 \begin{figure}[htbp]
 \centering
-\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
-\caption{Learned per-layer weights of the per-utterance sample mixer on ADReSSo ($\tau = 0.1$, twelve Wav2Vec~2.0 layers). Weight concentrates on the uppermost layer with secondary mass on the lowest, and the per-utterance spread is shown as a shaded band around the mean.}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}
+\begin{axis}[
+    width=\linewidth, height=6cm,
+    ylabel={Learned mixer weight},
+    xlabel={Wav2Vec~2.0 transformer layer},
+    symbolic x coords={0,1,2,3,4,5,6,7,8,9,10,11},
+    xtick=data,
+    ymin=0, ymax=0.23,
+    enlarge x limits=0.05,
+    ymajorgrids, grid style={gray!20},
+    legend style={at={(0.5,1.02)},anchor=south,legend columns=2,font=\footnotesize,draw=none},
+]
+\addplot[ybar, bar width=12pt, fill=blue!55, draw=blue!55] coordinates {
+    (0,0.1478)(1,0.0970)(2,0.0788)(3,0.0634)(4,0.0596)(5,0.0597)(6,0.0568)(7,0.0554)(8,0.0523)(9,0.0517)(10,0.0731)(11,0.2046)};
+\addplot[red, dashed, thick, mark=none] coordinates {(0,0.0833)(11,0.0833)};
+\legend{Sample mixer, Uniform ($1/12$)}
+\end{axis}
+\end{tikzpicture}%
+}
+\caption[Learned layer-mixer weights]{Learned per-layer weights of the per-utterance sample mixer on ADReSSo (seed~43, $\tau = 0.1$, twelve Wav2Vec~2.0 layers). Weight concentrates on the uppermost layer (layer~11) and, secondarily, the lowest, both well above the uniform $1/12$ baseline (dashed); the mean per-utterance spread of these weights is $0.24$.}
 \label{fig:res_layer_mixer}
 \end{figure}
 

@@ -249,6 +249,8 @@ The final family abandons attention altogether. The \textbf{Mamba} block~\cite{g
 
 The same seven families are implemented in both codebases. Fixing the catalogue this way is what lets the fusion axis be read as a property of the technique itself, reproducible across two independent software stacks, rather than an artefact of one implementation.
 
+Two non-sequential baselines accompany the seven families as a floor: plain concatenation and an element-wise mean of the two pooled stream embeddings, which combine the modalities without any cross-modal interaction. They are not sequence-to-sequence fusions and so are not counted among the seven, but they mark the lower bound the families must clear and are reported alongside them in the fusion results (Table~\ref{tab:res_fusion}).
+
 \begin{table}[H]
 \centering
 \caption[Fusion families]{\footnotesize The seven sequence-to-sequence fusion families compared in the experiments, grouped by mechanism.}

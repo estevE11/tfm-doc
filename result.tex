@@ -86,7 +86,7 @@ Concatenation     & \textbf{80.68} & 70.25 & \textbf{87.54} \\
 
 \subsubsection{Fusion}
 
-Fusion is the axis with the widest spread (Table~\ref{tab:res_fusion}, shown graphically in Figure~\ref{fig:res_fusion_bar}), and the three groups behave exactly as their inductive biases would predict. Pooling and plain self-attention stay near chance on the Spanish tasks; self-attention over an undifferentiated audio--text bag has no way to find the cross-modal structure on its own. Positional information and multiple heads help, but the decisive jump comes from keeping the modalities apart and letting one attend to the other. The cross-attention family (plain, gated, and bidirectional) tops every task: between 81 and 83\% on amyloid, the low seventies on PPA, and the high eighties on ADReSSo. Mamba is the telling outlier. It is strong on English and amyloid (85.40\% on ADReSSo, 77.49\% on amyloid) yet collapses to 52.57\% on PPA, and that collapse is what rules it out as a general-purpose default despite its ADReSSo standing.
+Fusion is the axis with the widest spread (Table~\ref{tab:res_fusion}, shown graphically in Figure~\ref{fig:res_fusion_bar}), and the three groups behave exactly as their inductive biases would predict. The two non-sequential baselines and plain self-attention stay near chance on the Spanish tasks; self-attention over an undifferentiated audio--text bag has no way to find the cross-modal structure on its own. Positional information and multiple heads help, but the decisive jump comes from keeping the modalities apart and letting one attend to the other. The cross-attention family (plain, gated, and bidirectional) tops every task: between 81 and 83\% on amyloid, the low seventies on PPA, and the high eighties on ADReSSo. Mamba is the telling outlier. It is strong on English and amyloid (85.40\% on ADReSSo, 77.49\% on amyloid) yet collapses to 52.57\% on PPA, and that collapse is what rules it out as a general-purpose default despite its ADReSSo standing.
 
 \begin{figure}[htbp]
 \centering
@@ -154,7 +154,7 @@ This ranking is the main trend the second, independent SER stack was built to ch
 
 \begin{table}[htbp]
 \centering
-\caption[Fusion-technique ablation per task]{Fusion-technique ablation per task (\texttt{res\_model}, weighted Wav2Vec~2.0 layers, no acoustic features). Mean CV validation accuracy (\%) over seeds. Fixed per-task alignment: ADReSSo tok$\rightarrow$tok (char); amyloid word$\rightarrow$token; PPA tok$\rightarrow$tok (uniform).}
+\caption[Fusion-technique ablation per task]{Fusion-technique ablation per task (\texttt{res\_model}, weighted Wav2Vec~2.0 layers, no acoustic features). The first two rows (concatenation, element-wise mean) are non-sequential baselines; the remaining seven are the sequence-to-sequence fusion families of Table~\ref{tab:fusion}. Mean CV validation accuracy (\%) over seeds. Fixed per-task alignment: ADReSSo tok$\rightarrow$tok (char); amyloid word$\rightarrow$token; PPA tok$\rightarrow$tok (uniform).}
 \label{tab:res_fusion}
 \small
 \begin{tabular}{lccc}
@@ -174,7 +174,7 @@ Mamba                         & 77.49 & 52.57 & 85.40 \\
 \end{tabular}
 
 \vspace{2pt}
-{\footnotesize Cross-attention variants dominate on every task; Mamba is competitive on English and amyloid but collapses on PPA. Naive concat/mean/self-attention fusions stay near chance on SPIN.}
+{\footnotesize Cross-attention variants dominate on every task; Mamba is competitive on English and amyloid but collapses on PPA. The concatenation and element-wise-mean baselines, and plain self-attention, stay near chance on SPIN.}
 \end{table}
 
 \subsubsection{Wav2Vec Layer Pooling and the Layer Mixer}

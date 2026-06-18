@@ -12,7 +12,7 @@ Unless a table says otherwise, the numbers come from the unified \texttt{res\_mo
 
 ADReSSo is the anchor task. It is a balanced, age- and sex-matched English benchmark with a fixed test partition, which makes it the one place in the thesis where a model can be judged against an external, previously unseen split rather than on its own folds.
 
-The recommended configuration pairs bidirectional cross-attention fusion with word-to-token alignment and a weighted stack of Wav2Vec~2.0 layers refined by the per-utterance sample mixer of Section~\ref{sssec:pooling}. Averaged over the five folds and both seeds it reaches \textbf{88.16\%} validation accuracy. Trained once on the full labelled set and evaluated on the official \texttt{test-dist} partition, the pipeline scores \textbf{83.10\%} test accuracy (Table~\ref{tab:res_best}), which sits among the stronger systems reported for the challenge and was obtained without any leaderboard-specific tuning.
+The recommended configuration pairs bidirectional cross-attention fusion with word-to-token alignment and a weighted stack of Wav2Vec~2.0 layers refined by the per-utterance sample mixer of Section~\ref{sssec:pooling}. Averaged over the five folds and both seeds it reaches \textbf{88.16\%} validation accuracy. The best result on the official \texttt{test-dist} partition is \textbf{83.10\%} (Table~\ref{tab:res_best}), which sits among the stronger systems reported for the challenge and was obtained without any leaderboard-specific tuning; the recipe behind that test figure is taken up next.
 
 One result deserves to be flagged early, because it returns in the ablations. On ADReSSo the Mamba fusion block is not merely competitive: it edges the validation grid (88.44\% in the legacy fusion sweep) and supplies the 83.10\% test figure after full training. That is a genuine finding and it is reported as one. It does not, however, make Mamba the recommended default. On the Spanish PPA task the same block collapses to near chance (Section~\ref{ssec:res_ablation}), and its ADReSSo advantage is sensitive to the seed. The recommendation therefore keeps the more even-tempered bidirectional cross-attention, trading a little ADReSSo accuracy for behaviour that holds up across all three tasks.
 
@@ -291,12 +291,12 @@ Task & Best technique stack & Val.\ acc.\ (\%) & Test acc.\ (\%) \\
 \midrule
 \textbf{Amyloid (SPIN)} & bicross, tok$\rightarrow$tok (char), final Wv, $+$AF & \textbf{83.90}$^{a}$ & n/a \\
 \textbf{PPA (SPIN)}     & bicross, tok$\rightarrow$tok (uniform), final Wv & \textbf{74.95} & n/a \\
-ADReSSo (ref.)          & bicross, word$\rightarrow$token, weighted Wv $+$ sample mixer & 88.16 & 83.10$^{b}$ \\
+ADReSSo (ref.)          & Mamba, word$\rightarrow$token, final Wv & 88.44 & 83.10$^{b}$ \\
 \bottomrule
 \end{tabular}
 
 \vspace{2pt}
-{\footnotesize $^{a}$Best single run (seed 43, lr $1.5\times10^{-5}$, dropout 0.25) with the 55-d handcrafted acoustic features; the plain-recipe gated cross-attention reaches 82.88\%. $^{b}$Official ADReSSo test-dist under the full-train protocol (Mamba, word$\rightarrow$token, final layer), the recipe that topped the ADReSSo fusion grid.}
+{\footnotesize $^{a}$Best single run (seed 43, lr $1.5\times10^{-5}$, dropout 0.25) with the 55-d handcrafted acoustic features; the plain-recipe gated cross-attention reaches 82.88\%. $^{b}$Official ADReSSo test-dist under the full-train protocol. Mamba tops the ADReSSo grid, but the recommended cross-task default is bidirectional cross-attention with the per-utterance sample mixer (88.16\% cross-validated validation accuracy), preferred for its stability across all three tasks rather than its single-task peak.}
 \end{table}
 
 \subsection{Error Analysis}

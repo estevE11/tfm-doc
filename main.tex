@@ -86,7 +86,7 @@ Both modalities are encoded by frozen self-supervised models. The acoustic strea
 
 Rather than treating this pipeline as a single monolithic system optimised end to end, this thesis formulates it as the composition of six largely independent design axes, each of which can be varied while the others are held at controlled defaults. The modality axis $m$ determines whether the classifier consumes audio alone, text alone, their combination, or additionally a set of handcrafted acoustic features. The fusion axis $f$ selects the sequence-to-sequence architecture that combines the aligned acoustic and textual streams, drawn from a catalogue of seven families. The alignment axis $a$ fixes the scheme that maps acoustic frames onto text positions, comprising the word-to-token baseline of CogniAlign~\cite{ortiz2025cognialign} and the two token-to-token schemes proposed in this work. The Wav2Vec pooling axis $w$ chooses between the final encoder layer and a learnable weighted sum across layers. The layer-mixing axis $\ell$ refines that choice: in place of a single global set of layer weights, an adaptive mixer can learn to combine the encoder's layers per utterance, or even per token, so that the depth of representation is selected dynamically rather than fixed in advance. Finally, the feature-extractor axis $e$ varies the pretrained encoders themselves, substituting one audio or text backbone for another, to test how far the downstream trends depend on the specific self-supervised models that supply the two streams.
 
-A concrete system instance is thus parameterised by a tuple $(m, f, a, w, \ell, e)$, and the central empirical question is to estimate the marginal contribution of each axis, alone and in interaction, on the three tasks, rather than to identify a single best-performing run. The unit of comparison is therefore the \emph{technique}, not the implementation: two independent codebases replicate the fusion and Wav2Vec-pooling trends under a second software stack, and a third, configuration-unified implementation then consolidates the resulting techniques into a single model (Section~\ref{ssec:architecture}). Building on this decomposition, the experimental programme of Section~\ref{sec:experiments} traverses the axes in a staged sequence, and the synthesis of the strongest choice along each axis into a recommended hybrid architecture is taken up in the Discussion.
+A concrete system instance is thus parameterised by a tuple $(m, f, a, w, \ell, e)$, and the central empirical question is to estimate the marginal contribution of each axis, alone and in interaction, on the three tasks, rather than to identify a single best-performing run. The unit of comparison is therefore the \emph{technique}, not the implementation: two independent codebases replicate the fusion and Wav2Vec-pooling trends under a second software stack, and a third, configuration-unified implementation then consolidates the resulting techniques into a single model (Section~\ref{ssec:architecture}). Building on this decomposition, the experimental programme of Section~\ref{sec:experiments} traverses the axes in a staged sequence, and the synthesis of the strongest choice along each axis into a recommended hybrid architecture is taken up in the conclusions (Section~\ref{sec:conclusions}).
 
 \subsection{Datasets and Preprocessing}
 \label{ssec:datasets}
@@ -241,7 +241,7 @@ Before the two streams can be fused they must be placed on a common sequence ind
 \centering
 \resizebox{0.95\linewidth}{!}{%
 \begin{tikzpicture}[font=\footnotesize, >=Stealth]
-% ---- Row 1: word -> token (baseline) ----
+% ==== Row 1: word -> token (baseline) ====
 \node[anchor=east] at (-0.3,3.9) {\textbf{word$\rightarrow$token}};
 \foreach \i in {1,...,9}{\fill[black!10] (0.6*\i-0.6,3.65) rectangle (0.6*\i,4.15); \draw (0.6*\i-0.6,3.65) rectangle (0.6*\i,4.15);}
 \fill[black!10] (0,2.85) rectangle (5.4,3.25); \draw (0,2.85) rectangle (5.4,3.25);
@@ -251,7 +251,7 @@ Before the two streams can be fused they must be placed on a common sequence ind
 \node at (1.8,2.25){$t_1$}; \node at (3.0,2.25){$t_2$}; \node at (4.2,2.25){$t_3$};
 \draw[->] (2.4,2.85)--(1.8,2.5); \draw[->] (2.7,2.85)--(3.0,2.5); \draw[->] (3.0,2.85)--(4.2,2.5);
 \node[anchor=west] at (5.7,2.55) {\scriptsize one vector, replicated to every token};
-% ---- Row 2: uniform ----
+% ==== Row 2: uniform ====
 \node[anchor=east] at (-0.3,1.05) {\textbf{tok$\rightarrow$tok (uniform)}};
 \foreach \i in {1,2,3}{\fill[blue!25] (0.6*\i-0.6,0.8) rectangle (0.6*\i,1.3);}
 \foreach \i in {4,5,6}{\fill[green!30] (0.6*\i-0.6,0.8) rectangle (0.6*\i,1.3);}
@@ -261,7 +261,7 @@ Before the two streams can be fused they must be placed on a common sequence ind
 \fill[green!30] (1.8,0.0) rectangle (3.6,0.5); \draw (1.8,0.0) rectangle (3.6,0.5); \node at (2.7,0.25){$t_2$};
 \fill[orange!35] (3.6,0.0) rectangle (5.4,0.5); \draw (3.6,0.0) rectangle (5.4,0.5); \node at (4.5,0.25){$t_3$};
 \node[anchor=west] at (5.7,0.25) {\scriptsize $3 / 3 / 3$ frames (even split)};
-% ---- Row 3: proportional ----
+% ==== Row 3: proportional ====
 \node[anchor=east] at (-0.3,-1.75) {\textbf{tok$\rightarrow$tok (char)}};
 \foreach \i in {1,2,3}{\fill[blue!25] (0.6*\i-0.6,-2.0) rectangle (0.6*\i,-1.5);}
 \foreach \i in {4,5,6,7}{\fill[green!30] (0.6*\i-0.6,-2.0) rectangle (0.6*\i,-1.5);}
@@ -397,7 +397,7 @@ SER plays a narrower part: it replicates only the fusion and layer-pooling trend
 \subsection{Evaluation Metrics and Baselines}
 \label{ssec:evaluation}
 
-The primary metric is classification accuracy, reported in a manner consistent with each cohort's evaluation protocol. For ADReSSo we report both the mean cross-validated validation accuracy and the accuracy on the official \texttt{test-dist} partition, the latter being the headline figure comparable with the challenge literature. For the two Spanish tasks, which have no official test set, we report validation accuracy only, computed as the mean of the per-fold best validation accuracy across the five folds, and we never substitute an artificially held-out split for the missing test partition. Alongside accuracy, per-sample validation and test inference times are recorded to characterise the compute cost of each technique, since some fusion families are substantially heavier than others. The word-to-token alignment of CogniAlign~\cite{ortiz2025cognialign} serves as the literature baseline against which the two proposed token-to-token schemes are measured, and challenge-reported systems on ADReSSo provide the external point of comparison for the AD task. Unless stated otherwise, results are reported as point estimates without significance testing, a limitation revisited in the Discussion.
+The primary metric is classification accuracy, reported in a manner consistent with each cohort's evaluation protocol. For ADReSSo we report both the mean cross-validated validation accuracy and the accuracy on the official \texttt{test-dist} partition, the latter being the headline figure comparable with the challenge literature. For the two Spanish tasks, which have no official test set, we report validation accuracy only, computed as the mean of the per-fold best validation accuracy across the five folds, and we never substitute an artificially held-out split for the missing test partition. Alongside accuracy, per-sample validation and test inference times are recorded to characterise the compute cost of each technique, since some fusion families are substantially heavier than others. The word-to-token alignment of CogniAlign~\cite{ortiz2025cognialign} serves as the literature baseline against which the two proposed token-to-token schemes are measured, and challenge-reported systems on ADReSSo provide the external point of comparison for the AD task. Unless stated otherwise, results are reported as point estimates without significance testing, a limitation revisited in the conclusions (Section~\ref{sec:conclusions}).
 
 \input{result}
 
@@ -420,8 +420,33 @@ The primary metric is classification accuracy, reported in a manner consistent w
 \section{Conclusions and Future Development}
 \label{sec:conclusions}
 
-% TODO: Write conclusions — summary of findings, recommended architecture
-% synthesis, limitations, and future work. Do not leave template text in body.
+This thesis set out to take a multimodal clinical-speech classifier apart and measure what each of its design choices actually contributes. Instead of reporting a single end-to-end accuracy, it treated the pipeline as a composition of six largely independent axes (modality, fusion, audio--text alignment, Wav2Vec pooling, layer mixing, and feature extractor) and moved them one at a time across three clinical tasks: Alzheimer's disease classification on the English ADReSSo benchmark, and amyloid-$\beta$ status and PPA variant classification on a Spanish-speaking subset of SPIN. Every technique was studied on two independent stacks and then re-assembled in a single configuration-driven implementation, so that the findings attach to techniques rather than to any one codebase.
+
+The clearest result is that the fusion mechanism dominates every other axis. Naive combination of the two streams barely clears the better unimodal branch, and plain self-attention over a concatenated audio--text bag stays near chance on the Spanish tasks; the gains arrive only once the modalities are kept apart and made to attend to one another. The cross-attention family leads on all three tasks, and this ordering reproduces under the second, independent stack despite its different encoders and training schedule, which is the strongest evidence in the thesis that the trend belongs to the technique and not to one implementation. The Mamba state-space block is the instructive exception: strong on English and amyloid yet collapsing to chance on PPA, which is exactly why a single-task peak is a poor basis for a default.
+
+Audio--text alignment, the methodological contribution of the thesis, gives a smaller and more conditional gain. Under a stable recipe the word-to-token baseline and the two proposed token-to-token schemes finish within a point of one another on all three tasks, so subword alignment is not a free improvement under every configuration. Where it does help, it helps in the setting it was designed for: in the legacy amyloid grid, with handcrafted features and a final-layer audio representation, the character-proportional scheme reaches $85.72\%$ against $85.13\%$ for word-to-token. The honest reading is that token-to-token alignment is a worthwhile, low-cost refinement that pays off on specific task and feature combinations, and that the character-proportional variant is the better of the two proposals.
+
+The remaining axes move accuracy only at the margin, and always in a task-dependent way. Reading a learnable weighted sum of Wav2Vec layers rather than the final layer changes little once a competent fusion is in place, though the adaptive per-utterance sample mixer adds a small ADReSSo gain (from $87.23\%$ to $88.16\%$) by concentrating on the upper layers while still varying its weights from one recording to the next. The 55 handcrafted acoustic features help amyloid and, slightly, ADReSSo, but cost PPA accuracy, so they are best left off by default and enabled per task. The pretrained encoders behave the same way: the lightweight DistilBERT and English Wav2Vec~2.0 base pairing is best on ADReSSo, while the cross-lingual XLSR-300M audio encoder helps amyloid and ModernBERT text helps PPA, the larger models earning their place precisely where the language stops matching the English pretraining.
+
+These observations point to a recommended architecture rather than a single winning run. For the English benchmark it pairs word-timestamped transcripts and a DistilBERT text encoder with the Wav2Vec~2.0 base audio encoder, reads the audio as a weighted layer stack combined by the sample mixer, aligns the streams word-to-token, fuses them with bidirectional cross-attention, and classifies a mean-pooled representation with a shallow head, leaving the handcrafted features off; on the Spanish cohorts the cross-lingual audio encoder is preferable. This configuration reaches $88.16\%$ cross-validated accuracy on ADReSSo and $83.10\%$ on the official held-out partition, in line with stronger challenge systems and obtained without leaderboard-specific tuning, while staying lightweight enough to precompute and cache end to end. Its value is breadth, not a record on any one task: no configuration wins everywhere in this grid, and the central message of the thesis is that the best choice along each axis is task-dependent, with attention-based fusion the one near-universal requirement.
+
+\subsection{Limitations}
+
+The conclusions should be read against the study's limits. The clinical cohorts are small, and the PPA task in particular is a three-class problem over a few dozen subjects, so its fold-level accuracies are high-variance and are read as indicative rather than definitive. The two Spanish tasks have no official test partition, so they are reported on cross-validation folds only and never against an artificial split. All accuracies are point estimates: no significance testing or confidence intervals were computed, so small differences between techniques should not be over-interpreted. The text stream is derived from automatic speech recognition rather than gold transcripts, which injects a genuine and unmeasured source of error, especially for Spanish and for disfluent aphasic speech. The encoders are frozen throughout, which keeps the comparison clean and the training tractable but also caps the attainable ceiling. Finally, cross-stack figures are directional rather than a controlled head-to-head, and the handcrafted descriptors evaluated here are the 55-dimensional librosa and Praat set, not the standardised OpenSMILE eGeMAPS functionals.
+
+\subsection{Future work}
+
+Several of these limits map directly onto next steps:
+
+\begin{itemize}
+    \item \textbf{Error analysis.} Build the per-class confusion matrices for PPA, where logopenic and non-fluent variants are the likely confusion, and quantify how ASR transcription errors propagate into the text stream and the final prediction.
+    \item \textbf{Statistical validation.} Add confidence intervals and significance tests over folds and seeds so that the per-axis differences can be claimed with calibrated confidence.
+    \item \textbf{Feature sets.} Re-extract the handcrafted features with OpenSMILE eGeMAPS and compare them against the 55-dimensional librosa/Praat set under identical fusion and alignment settings.
+    \item \textbf{Encoders.} Broaden the single-factor encoder sweep to HuBERT and WavLM, and test partial unfreezing or fine-tuning of the acoustic and textual backbones.
+    \item \textbf{External validation.} Evaluate on official amyloid and PPA test partitions when available, and on additional cohorts and languages, to confirm that the trends transfer.
+    \item \textbf{Regression targets.} Extend the head from categorical labels to a continuous target such as amyloid burden, which the architecture supports by swapping the final layer and loss.
+    \item \textbf{Deployment.} Assemble the recommended hybrid into a single end-to-end system with the precompute-and-cache pipeline, as a deployable clinical-screening prototype rather than a research grid.
+\end{itemize}
 
 %%% BIBLIOGRAPHY %%%
 \newpage

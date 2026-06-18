@@ -86,9 +86,23 @@ Concatenation     & \textbf{80.68} & 70.25 & \textbf{87.54} \\
 
 \subsubsection{Fusion}
 
-Fusion is the axis with the widest spread (Table~\ref{tab:res_fusion}), and the three groups behave exactly as their inductive biases would predict. Pooling and plain self-attention stay near chance on the Spanish tasks; self-attention over an undifferentiated audio--text bag has no way to find the cross-modal structure on its own. Positional information and multiple heads help, but the decisive jump comes from keeping the modalities apart and letting one attend to the other. The cross-attention family (plain, gated, and bidirectional) tops every task: between 81 and 83\% on amyloid, the low seventies on PPA, and the high eighties on ADReSSo. Mamba is the telling outlier. It is strong on English and amyloid (85.40\% on ADReSSo, 77.49\% on amyloid) yet collapses to 52.57\% on PPA, and that collapse is what rules it out as a general-purpose default despite its ADReSSo standing.
+Fusion is the axis with the widest spread (Table~\ref{tab:res_fusion}, shown graphically in Figure~\ref{fig:res_fusion_bar}), and the three groups behave exactly as their inductive biases would predict. Pooling and plain self-attention stay near chance on the Spanish tasks; self-attention over an undifferentiated audio--text bag has no way to find the cross-modal structure on its own. Positional information and multiple heads help, but the decisive jump comes from keeping the modalities apart and letting one attend to the other. The cross-attention family (plain, gated, and bidirectional) tops every task: between 81 and 83\% on amyloid, the low seventies on PPA, and the high eighties on ADReSSo. Mamba is the telling outlier. It is strong on English and amyloid (85.40\% on ADReSSo, 77.49\% on amyloid) yet collapses to 52.57\% on PPA, and that collapse is what rules it out as a general-purpose default despite its ADReSSo standing.
 
-This ranking is the main trend the second, independent SER stack was built to check, and it survives the change of implementation. In the legacy Step~B grid the cross-attention and Mamba families again lead within SER (bidirectional cross-attention reaches 85.21\% validation on ADReSSo, for instance), even though SER uses different encoders, a different ASR path, and a shorter training schedule. The absolute numbers diverge between the two stacks, which are not a controlled head-to-head, but the ordering of fusion families holds, and reproducing that ordering twice is the whole point of running it twice. The stacks also differ starkly in inference cost. Because CogniAligned reads precomputed token-aligned tensors while the SER timings include the encoders in the loop, per-sample inference differs by more than two orders of magnitude: sub-millisecond against a couple of hundred milliseconds. That gap is a property of the embedding cache, not of the fusion mechanism, and it is what makes a multi-axis grid affordable in the first place.
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
+\caption{Validation accuracy of the fusion families on the three tasks (values from Table~\ref{tab:res_fusion}). The cross-attention family leads on every task, while Mamba's drop to chance on PPA stands out as the clearest outlier.}
+\label{fig:res_fusion_bar}
+\end{figure}
+
+This ranking is the main trend the second, independent SER stack was built to check, and it survives the change of implementation. In the legacy Step~B grid the cross-attention and Mamba families again lead within SER (bidirectional cross-attention reaches 85.21\% validation on ADReSSo, for instance), even though SER uses different encoders, a different ASR path, and a shorter training schedule. The absolute numbers diverge between the two stacks, which are not a controlled head-to-head, but the ordering of fusion families holds, and reproducing that ordering twice is the whole point of running it twice. The stacks also differ starkly in inference cost. Because CogniAligned reads precomputed token-aligned tensors while the SER timings include the encoders in the loop, per-sample inference differs by more than two orders of magnitude: sub-millisecond against a couple of hundred milliseconds (Figure~\ref{fig:res_compute}). That gap is a property of the embedding cache, not of the fusion mechanism, and it is what makes a multi-axis grid affordable in the first place.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
+\caption{Validation accuracy against per-sample inference time for the fusion families (Step~B, ADReSSo). Cross-attention pairs high accuracy with low cost in the precomputed-embedding pipeline; absolute timings depend on whether the encoders are cached or run in the loop.}
+\label{fig:res_compute}
+\end{figure}
 
 \begin{table}[htbp]
 \centering
@@ -119,7 +133,14 @@ Mamba                         & 77.49 & 52.57 & 85.40 \\
 
 Two questions sit on the audio branch: whether to read the final Wav2Vec layer or a learnable mixture of all twelve, and, if a mixture, whether a single global set of weights is enough. The pooling table (Table~\ref{tab:res_wav2vec_pool}) gives a muted answer. A weighted layer stack helps ADReSSo slightly (86.64\% against 86.32\%), but on the Spanish tasks the final layer is as good or better, clearly so on PPA (74.95\% against 72.43\%). Depth, once a competent fusion is in place, buys little.
 
-The adaptive layer mixer, evaluated only in the unified implementation, sharpens the picture. Replacing the single global weight vector with a per-utterance \emph{sample} mixer at temperature 0.1 lifts ADReSSo from 87.23\% (global mixer, uniform initialisation) to \textbf{88.16\%}, and the learned weights are interpretable: the mixer concentrates on the top layer (layer~11, weight $\approx 0.20$ against the uniform 0.083) while keeping secondary mass on the lowest layer, and it varies those weights from one utterance to the next instead of settling on a single profile. The finer \emph{token} mixer does not improve on this, so the per-utterance sample mixer is the variant carried into the recommendation: cheap, input-conditioned, and biased toward the upper layers where lexical content concentrates.
+The adaptive layer mixer, evaluated only in the unified implementation, sharpens the picture. Replacing the single global weight vector with a per-utterance \emph{sample} mixer at temperature 0.1 lifts ADReSSo from 87.23\% (global mixer, uniform initialisation) to \textbf{88.16\%}, and the learned weights are interpretable: the mixer concentrates on the top layer (layer~11, weight $\approx 0.20$ against the uniform 0.083) while keeping secondary mass on the lowest layer, and it varies those weights from one utterance to the next instead of settling on a single profile (Figure~\ref{fig:res_layer_mixer}). The finer \emph{token} mixer does not improve on this, so the per-utterance sample mixer is the variant carried into the recommendation: cheap, input-conditioned, and biased toward the upper layers where lexical content concentrates.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
+\caption{Learned per-layer weights of the per-utterance sample mixer on ADReSSo ($\tau = 0.1$, twelve Wav2Vec~2.0 layers). Weight concentrates on the uppermost layer with secondary mass on the lowest, and the per-utterance spread is shown as a shaded band around the mean.}
+\label{fig:res_layer_mixer}
+\end{figure}
 
 \begin{table}[htbp]
 \centering

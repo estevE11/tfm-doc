@@ -220,13 +220,34 @@ Before the two streams can be fused they must be placed on a common sequence ind
 
 \subsubsection{Fusion Module}
 
-Once the streams are aligned (or, in SER, taken at the segment level), the fusion module combines them into the joint representation that the head consumes. This is the axis the thesis varies most widely. Seven families are implemented and compared, summarised in Table~\ref{tab:fusion}, and they fall into three groups that embody three distinct hypotheses about how acoustic and textual evidence ought to interact.
+Once the streams are aligned (or, in SER, taken at the segment level), the fusion module combines them into the joint representation that the head consumes. This is the axis the thesis varies most widely. Seven families are implemented and compared, summarised in Table~\ref{tab:fusion}, and they fall into three groups (Figures~\ref{fig:self_attention_fusion}--\ref{fig:mamba_fusion}) that embody three distinct hypotheses about how acoustic and textual evidence ought to interact.
 
 The first group applies \textbf{self-attention} to the concatenated audio--text sequence, treating both modalities as one undifferentiated set of tokens in which every position may attend to every other. Its premise is that the relevant cross-modal structure will surface on its own once the model is given global context, with no architectural separation between the streams. Three variants probe how much machinery that premise actually needs. Plain self-attention uses a single attention map. Multi-head self-attention splits the computation into several parallel heads, each free to specialise in a different relation, one head might track how prosody aligns with content words while another tracks how pauses fall around syntactic boundaries. The transformer-with-positional-encoding variant goes further and injects sinusoidal position information inside a full transformer block~\cite{vaswani2017attention}, so that the order of frames and tokens is modelled explicitly. That last addition matters for speech in particular, where timing is itself diagnostic and a permutation-invariant model would throw away exactly the rhythm that distinguishes fluent from disfluent production.
 
-The second group, \textbf{cross-attention}, keeps the modalities apart and lets one query the other. One stream forms the queries while the other supplies the keys and values, so the fused representation is essentially one modality re-expressed in terms of the most relevant parts of the other. Gated cross-attention extends this with a learned gate that scales the cross-modal contribution, giving the model an explicit means to down-weight the other stream when it is unreliable. That control is not cosmetic here: the text stream is the output of an error-prone ASR step, and a fixed cross-modal coupling would force the model to attend to transcription noise it would be better off ignoring. Bidirectional cross-attention performs the exchange in both directions at once, refining the audio with the text and the text with the audio instead of designating either as the primary stream.
+\begin{figure}[ht]
+\centering
+\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
+\caption{Self-attention fusion over the concatenated audio--text sequence.}
+\label{fig:self_attention_fusion}
+\end{figure}
+
+The second group, \textbf{cross-attention} (Figure~\ref{fig:cross_attention_variants}), keeps the modalities apart and lets one query the other. One stream forms the queries while the other supplies the keys and values, so the fused representation is essentially one modality re-expressed in terms of the most relevant parts of the other. Gated cross-attention extends this with a learned gate that scales the cross-modal contribution, giving the model an explicit means to down-weight the other stream when it is unreliable. That control is not cosmetic here: the text stream is the output of an error-prone ASR step, and a fixed cross-modal coupling would force the model to attend to transcription noise it would be better off ignoring. Bidirectional cross-attention performs the exchange in both directions at once, refining the audio with the text and the text with the audio instead of designating either as the primary stream.
+
+\begin{figure}[ht]
+\centering
+\fbox{\parbox{0.9\linewidth}{\vspace{5cm}\centering\small\textit{[Figure to be added]}\vspace{5cm}}}
+\caption{Cross-attention fusion variants: (a)~standard, (b)~gated, and (c)~bidirectional.}
+\label{fig:cross_attention_variants}
+\end{figure}
 
 The final family abandons attention altogether. The \textbf{Mamba} block~\cite{gu2023mamba} is a selective state-space model that mixes the sequence in linear rather than quadratic time, and it carries a very different inductive bias: information is propagated through a recurrent hidden state whose dynamics are themselves input-dependent, which favours smoothly evolving temporal structure over the all-pairs comparison that attention performs. Including it asks whether any gain attributed to fusion is specific to attention or survives under a fundamentally different sequence model.
+
+\begin{figure}[ht]
+\centering
+\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
+\caption{Mamba selective state-space fusion applied to the concatenated audio--text sequence.}
+\label{fig:mamba_fusion}
+\end{figure}
 
 The same seven families are implemented in both codebases. Fixing the catalogue this way is what lets the fusion axis be read as a property of the technique itself, reproducible across two independent software stacks, rather than an artefact of one implementation.
 

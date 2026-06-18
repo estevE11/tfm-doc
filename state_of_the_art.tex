@@ -69,13 +69,6 @@ Spanish-focused studies show that language-aware descriptors can still discrimin
 
 Because syndromic overlap complicates visual inspection alone, quantitative speech analyses seek markers that track breakdown profiles hypothesised by neurolinguistic models: reduced speech rate and grammatical complexity in \textit{nfvPPA}; lexical retrieval failures and semantic thinning in \textit{svPPA}; hesitation and phonological loop limitations with spared grammar in \textit{lvPPA}~\cite{gorno2011ppa}.
 
-\begin{figure}[ht]
-\centering
-\fbox{\parbox{0.9\linewidth}{\vspace{5cm}\centering\small\textit{[Figure to be added]}\vspace{5cm}}}
-\caption{Distinguishing speech and language profiles of the three PPA variants.}
-\label{fig:ppa_variants}
-\end{figure}
-
 Empirical studies highlight pause structure, filler usage, lexical diversity, and discourse coherence metrics as discriminative at group level~\cite{cho2022lexical}, while articulatory tempo measures help separate non-fluent from fluent variants~\cite{cordella2017articulation,haley2021speechmetrics}.
 At the intersection with amyloid biology, connected speech features associate with cortical amyloid burden within PPA cohorts~\cite{slegers2021connectedppa}, reinforcing the notion that speech captures not only syndrome labels but correlates of underlying pathology, similar in spirit to speech-only screening models targeting amyloid positivity~\cite{fristed2022leveraging,gabirondo2025speechbiomarkers}.
 
@@ -103,25 +96,11 @@ Self-attention fusion concatenates embeddings from both modalities into a single
 Multi-head variants distribute this computation across parallel subspaces, each potentially capturing different cross-modal interactions.
 Adding explicit positional encodings (sinusoidal or learned) to the concatenated sequence before applying self-attention provides ordering information that can help preserve temporal structure and modality boundaries within the joint representation.
 
-\begin{figure}[ht]
-\centering
-\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
-\caption{Self-attention fusion over concatenated audio and text embeddings.}
-\label{fig:self_attention_fusion}
-\end{figure}
-
 \subsubsection{Cross-attention and gated variants}
 
 Cross-attention introduces directionality: one modality supplies the queries while the other provides keys and values, producing representations of the query modality enriched with information from the other.
 Gated cross-attention extends this by adding a learned gate, typically a sigmoid-activated linear projection, that scales the cross-attended output element-wise before combining it with the original representation; the gate allows the network to suppress uninformative cross-modal contributions on a per-dimension basis.
 Bidirectional cross-attention runs two cross-attention operations simultaneously (audio queries text, text queries audio) and merges both enriched representations, so that information flows in both directions.
-
-\begin{figure}[ht]
-\centering
-\fbox{\parbox{0.9\linewidth}{\vspace{5cm}\centering\small\textit{[Figure to be added]}\vspace{5cm}}}
-\caption{Cross-attention variants: (a)~standard, (b)~gated, and (c)~bidirectional.}
-\label{fig:cross_attention_variants}
-\end{figure}
 
 \subsubsection{Selective state-space models: Mamba}
 
@@ -129,13 +108,6 @@ An alternative to attention-based fusion comes from the family of selective stat
 The Mamba architecture~\cite{gu2023mamba} processes the concatenated audio--text sequence through a state-space layer that maintains a compressed hidden state updated recurrently along the time axis.
 A learned, input-dependent selection mechanism controls how much each position influences the hidden state, enabling the model to retain salient information and discard noise dynamically.
 Because the state update is recurrent rather than pairwise, computational cost grows linearly with sequence length instead of quadratically as in full self-attention, a property that becomes practically relevant when processing long recordings of spontaneous speech.
-
-\begin{figure}[ht]
-\centering
-\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
-\caption{Mamba selective state-space fusion applied to a concatenated audio--text sequence.}
-\label{fig:mamba_fusion}
-\end{figure}
 
 \subsubsection{Cross-modal alignment}
 
@@ -163,13 +135,6 @@ Fusion architectures developed for speaker and emotion modelling have been shown
 Despite the strength of self-supervised waveform encoders, clinically interpretable descriptors remain attractive because they tie predictions to measurable articulatory and phonatory parameters.
 These descriptors can be grouped into five broad categories: temporal and pause features (pause histograms, speech rate), prosodic contours (fundamental-frequency variation, intensity envelopes), voice-quality measures (jitter, shimmer, harmonics-to-noise ratio), spectral descriptors (formant tracks, spectral moments), and cepstral coefficients (mel-frequency cepstral coefficients).
 Pause-oriented statistics repeatedly emerge as salient in cognitive decline~\cite{imre2022temporal,zheng2024survey}; voice-quality perturbations may track neurogenic speech motor control deficits~\cite{rezaii2025voiceprints}.
-
-\begin{figure}[ht]
-\centering
-\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
-\caption{Categories of handcrafted acoustic descriptors used in clinical speech analysis.}
-\label{fig:acoustic_descriptors}
-\end{figure}
 
 Open-source dementia-speech pipelines demonstrate competitive accuracy when coupling classical descriptors with modern backbones~\cite{ntampakis2025neuroxvocal}, supporting hybrid designs where auxiliary vectors augment attention pooling or concatenate immediately before classification~\cite{esteve2025speechadppa}.
 Whether explicit features complement latent embeddings in practice depends on architecture and task: pathology-linked cues sometimes persist outside generic waveform embeddings, whereas architectures with explicit alignment may subsume part of the prosodic signal~\cite{ortiz2025cognialign}.

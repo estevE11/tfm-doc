@@ -405,7 +405,29 @@ The primary metric is classification accuracy, reported in a manner consistent w
 \clearpage
 
 \section{Budget}
-% TODO: Write budget — compute/GPU hours, software, personnel cost as applicable.
+
+This is a research thesis built on open-source software and run on a shared university GPU cluster, so its cost is dominated by engineering time, with compute as a secondary item and no licensing expense. Table~\ref{tab:budget} gives an estimate; the figures are approximate, and cluster usage is valued at a cloud-equivalent rate rather than billed directly.
+
+\begin{table}[H]
+\centering
+\caption[Estimated project budget]{\footnotesize Estimated project budget. Personnel hours span the full thesis period; GPU usage is valued at a cloud-equivalent rate; all software is open-source.}
+\label{tab:budget}
+\footnotesize{
+\begin{tabular}{@{}llr@{}}
+\toprule
+\textbf{Item} & \textbf{Basis} & \textbf{Cost (EUR)} \\ \midrule
+Engineering (student)  & $\sim$800\,h at 25\,EUR/h (junior engineer)        & 20,000 \\
+Supervision            & $\sim$40\,h at 60\,EUR/h (senior engineer)         & 2,400 \\
+GPU compute            & $\sim$400 GPU-h at 2.5\,EUR/h (cloud-equivalent)   & 1,000 \\
+Workstation / laptop   & amortised over the project                         & 150 \\
+Software               & PyTorch, Hugging Face, librosa, Praat (open-source) & 0 \\ \midrule
+\textbf{Total}         &                                                    & \textbf{23,550} \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+The frozen-encoder design keeps the compute item small. Because every embedding is precomputed once and cached, the multi-axis ablation grid reuses stored features instead of re-running the encoders, so the GPU budget mostly covers the one-off feature extraction and the training of the lightweight fusion heads rather than the backbones.
 
 %%% ENVIRONMENT %%%
 \clearpage

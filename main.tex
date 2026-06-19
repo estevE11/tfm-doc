@@ -432,10 +432,21 @@ The frozen-encoder design keeps the compute item small. Because every embedding 
 %%% ENVIRONMENT %%%
 \clearpage
 
-\section[Environment Impact (Optional)]{{Environment Impact (Optional)}}
+\section{Environmental Impact}
 
-% TODO: Optional — describe environmental impact (e.g. training energy /
-% carbon footprint of the GPU experiments) or remove the section.
+The environmental footprint of this thesis is essentially the electricity used to train and evaluate the models: the data are existing recordings and the software stack is open-source, so no further resources are consumed. Following the usual estimate, the training energy is the product of GPU time, device power, and a data-centre overhead factor (PUE), and the resulting emissions follow from the local grid's carbon intensity.
+
+Taking the roughly 400 GPU-hours of Table~\ref{tab:budget} at a representative 250\,W per GPU and a PUE of 1.5,
+\[
+E \approx 400\,\text{h} \times 0.25\,\text{kW} \times 1.5 \approx 150\,\text{kWh}.
+\]
+The cluster runs on the Spanish grid, whose carbon intensity is on the order of $0.17\,\text{kg\,CO}_2/\text{kWh}$, so
+\[
+\text{emissions} \approx 150\,\text{kWh} \times 0.17\,\frac{\text{kg\,CO}_2}{\text{kWh}} \approx 26\,\text{kg\,CO}_2\text{e},
+\]
+roughly the emissions of a 200\,km drive in an average car.
+
+The figure is deliberately small for a deep-learning project, and the reason is architectural. Freezing the encoders and caching their embeddings means the heavy backbones run once rather than at every training step, so the many-cell ablation grid trains only lightweight fusion heads and adds little marginal energy. The estimate is an order-of-magnitude value: it excludes embodied hardware emissions and development-machine usage, and the grid intensity is an annual average rather than a time-of-use figure.
 
 %%% CONCLUSION AND FUTURE %%%
 \clearpage

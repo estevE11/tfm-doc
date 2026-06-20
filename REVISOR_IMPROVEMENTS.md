@@ -14,6 +14,17 @@ Legend: **[verified]** checked against data/code · **[needs decision]** my inpu
 
 ## A. Results section
 
+> **✅ DONE (A1/A3/A4/A5) — Results rewritten into the hybrid layout (`result.tex`).**
+> New structure: intro (conventions kept) → **`\subsection{Ablation findings}`** (axis-driven,
+> cross-task, *flowing prose with no per-experiment subsubsection headers* — modality → handcrafted
+> features → fusion → pooling/mixer → alignment → encoders, each introduced by a self-contained
+> topic sentence, all tables/figures retained) → **`\subsection{Results by task}`** (per-task
+> synthesis: AD, Amyloid, PPA paragraphs + `tab:res_best` at the end) → `\subsection{Error Analysis}`.
+> Removed the three top-of-section headline subsections (4.1–4.3); their numbers now land only in
+> the per-task synthesis at the end. Subsections 12 → 3, zero subsubsections. Compiles clean (exit 0,
+> no undefined refs; removed per-task labels have no danglers). B (modality A+T+AF row) still parked
+> for Phase 0; the modality table is unchanged for now.
+
 ### A1. Final results must go at the END, not stated early
 > "Results final results have to go at the end (currently we have two sections for dataset where we state the final results)."
 

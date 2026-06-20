@@ -1,46 +1,49 @@
+\resizebox{\textwidth}{!}{%
 \begin{ganttchart}[y unit title=0.4cm,
 y unit chart=0.5cm,
 vgrid,hgrid,
 title height=1,
-today=25,%
+today=19,%
 today offset=.5,%
 today label=Now,%
 bar/.style={draw,fill=cyan},
 bar incomplete/.append style={fill=yellow!50},
-bar height=0.7]{1}{30}
+bar height=0.7]{1}{20}
 
- % dies
- \gantttitle{Phases of the Project}{30} \\
- \gantttitle{2019}{15}
- \gantttitle{2020}{15} \\
- \gantttitle{1st Q.}{5}
- \gantttitle{2nd Q.}{5}
- \gantttitle{3rd Q.}{5}
- \gantttitle{1st Q.}{5}
- \gantttitle{2nd Q.}{5}
- \gantttitle{3rd Q.}{5} \\
- 
- % caixes elem0 .. elem9 
- \ganttgroup[inline=false]{Planning}{2}{9}\\
- \ganttbar[progress=100]{Phase1}{2}{8} \\
- \ganttbar[progress=100]{Phase2}{5}{9} \\
- \ganttbar[progress=100]{Phase3}{2}{4} \\
- \ganttgroup[inline=false]{Process}{10}{23}\\
- \ganttbar[progress=100]{Phase4}{10}{18} \\
- \ganttbar[progress=100]{Phase5}{19}{23} \\
- \ganttbar[progress=100]{Testing}{10}{22} \\
- \ganttgroup[inline=false]{Future}{24}{29}\\
- \ganttbar[progress=25]{Environm.}{25}{29} \\
- \ganttbar[progress=25]{Future}{24}{29} \\
+ % months (Feb--Jun 2026), four weeks each
+ \gantttitle{Master Thesis (February--June 2026)}{20} \\
+ \gantttitle{February}{4}
+ \gantttitle{March}{4}
+ \gantttitle{April}{4}
+ \gantttitle{May}{4}
+ \gantttitle{June}{4} \\
 
- 
- % relacions
- \ganttlink{elem1}{elem5}
- \ganttlink{elem1}{elem5}
- \ganttlink{elem2}{elem7}
- \ganttlink{elem3}{elem7}
- \ganttlink{elem5}{elem6}
- \ganttlink{elem6}{elem9}
- \ganttlink{elem7}{elem10}
+ % --- Background & data ---
+ \ganttgroup[inline=false]{Background \& data}{1}{8}\\
+ \ganttbar[progress=100,name=lit]{Literature review}{1}{5} \\
+ \ganttbar[progress=100,name=prep]{Data preprocessing \& embedding cache}{2}{8} \\
 
-\end{ganttchart}
+ % --- Modelling & experiments ---
+ \ganttgroup[inline=false]{Modelling \& experiments}{5}{16}\\
+ \ganttbar[progress=100,name=prim]{Primitive stacks (CogniAligned, SER)}{5}{10} \\
+ \ganttbar[progress=100,name=abl]{Fusion / pooling / alignment ablations}{8}{12} \\
+ \ganttbar[progress=100,name=res]{Unified \texttt{res\_model} implementation}{11}{15} \\
+ \ganttbar[progress=90,name=mix]{Layer-mixer \& encoder ablations}{13}{16} \\
+
+ % --- Synthesis & writing ---
+ \ganttgroup[inline=false]{Synthesis \& writing}{14}{20}\\
+ \ganttbar[progress=85,name=ana]{Results analysis}{15}{18} \\
+ \ganttbar[progress=65,name=wri]{Thesis writing}{14}{20} \\
+ \ganttbar[progress=0,name=def]{Defence preparation}{19}{20} \\
+
+ % dependencies
+ \ganttlink{prep}{prim}
+ \ganttlink{prim}{abl}
+ \ganttlink{abl}{res}
+ \ganttlink{res}{mix}
+ \ganttlink{mix}{ana}
+ \ganttlink{ana}{wri}
+ \ganttlink{wri}{def}
+
+\end{ganttchart}%
+}

@@ -278,7 +278,23 @@ Legend: **[verified]** checked against data/code · **[needs decision]** my inpu
 
 ---
 
-## F. Methodology — reorder and restructure into "System modules" + "System architecture"
+## F. Methodology — reorder and restructure into "System modules" + "System architecture" — ✅ DONE
+> Implemented in `main.tex`. New Methodology order:
+> Problem Formulation → Datasets & Preprocessing → **System Modules** (Audio Branch:
+> Encoder+Layer Pooling [merged] · Text Branch: Encoder · Handcrafted Acoustic Features
+> [moved up, before fusion, framed as the third input] · Cross-Modal Alignment and Fusion
+> [merged] · Classification Heads) → **System Architecture** (overview + end-to-end figure
+> [relocated here] + three-implementations; Unified Implementation \texttt{res\_model}
+> [demoted to subsubsection]; Feature Extractors: Single-Factor Encoder Ablation) → Training
+> Protocol → Ablation Protocol → Evaluation Metrics.
+> All labels preserved (`sssec:pooling`, `sssec:feature_extractors`, `ssec:architecture`,
+> `ssec:res_model`, `sssec:alignment`, `sssec:acoustic_encoder`); cross-refs in Problem
+> Formulation retargeted (Wav2Vec variant → `sssec:acoustic_encoder`; consolidation →
+> `ssec:res_model`). Re-review pass removed redundant transitions (duplicate "Wav2Vec-pooling
+> axis", "placed on a common index", "aligned…aligned", "training schedule"). Compiles clean
+> (51pp, exit 0, no undefined/multiply-defined).
+> Note: revisor's "fusion maybe suits results better" → chose the fold-into-alignment option
+> (a), not the move-to-results option; fusion taxonomy + `tab:fusion` stay in Methodology.
 
 > "Methodology: bad order. Merge 'Acoustic Encoder: Choice and Configuration' with
 > 'Wav2Vec Pooling and Layer Mixing'. Handcrafted acoustic features section to the top.

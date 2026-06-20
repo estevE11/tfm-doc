@@ -82,11 +82,11 @@ The general problem addressed in this thesis is the prediction of a clinical lab
 
 We study three tasks, each defined over a distinct clinical cohort and summarised in Table~\ref{tab:datasets}. The first is Alzheimer's disease classification, a binary discrimination between AD patients and cognitively normal (CN) controls on the English ADReSSo cohort~\cite{luz2021adresso}, with $\mathcal{Y} = \{\mathrm{AD}, \mathrm{CN}\}$; this is the only task with an official held-out test partition. The second is amyloid-$\beta$ status prediction, a binary proxy-biomarker task defined on a Spanish-speaking subset of the SPIN cohort~\cite{alcolea2019spin} elicited with the Western Aphasia Battery picture-description task~\cite{kertesz1982wab}, with $\mathcal{Y} = \{\mathrm{positive}, \mathrm{negative}\}$. The third is primary progressive aphasia variant classification, a three-class problem distinguishing the non-fluent/agrammatic, semantic, and logopenic variants~\cite{gorno2011ppa} defined on the same SPIN subset, with $|\mathcal{Y}| = 3$. Both Spanish tasks are drawn from this single SPIN subset and share the same data tree; neither has an official external test split, so for these we report cross-validated performance only and never construct an artificial test partition.
 
-Both modalities are encoded by frozen self-supervised models. The acoustic stream is processed by a Wav2Vec~2.0 encoder~\cite{baevski2020wav2vec} (the specific variant depends on the implementation and is detailed in Section~\ref{ssec:architecture}) producing a frame-level sequence $\mathbf{H}^{\mathrm{a}} = (\mathbf{h}^{\mathrm{a}}_1, \dots, \mathbf{h}^{\mathrm{a}}_{T_a})$, and the textual stream by a frozen transformer text encoder of the BERT family~\cite{devlin2019bert}, producing a token-level sequence $\mathbf{H}^{\mathrm{t}} = (\mathbf{h}^{\mathrm{t}}_1, \dots, \mathbf{h}^{\mathrm{t}}_{T_t})$. Because the two sequences live on different time bases ($T_a \neq T_t$), an alignment step is required to place acoustic and textual representations on a common index before they can be fused, after which a sequence-to-sequence fusion module combines the aligned streams into a representation that feeds a shallow classification head.
+Both modalities are encoded by frozen self-supervised models. The acoustic stream is processed by a Wav2Vec~2.0 encoder~\cite{baevski2020wav2vec} (the specific variant depends on the implementation and is detailed in Section~\ref{sssec:acoustic_encoder}) producing a frame-level sequence $\mathbf{H}^{\mathrm{a}} = (\mathbf{h}^{\mathrm{a}}_1, \dots, \mathbf{h}^{\mathrm{a}}_{T_a})$, and the textual stream by a frozen transformer text encoder of the BERT family~\cite{devlin2019bert}, producing a token-level sequence $\mathbf{H}^{\mathrm{t}} = (\mathbf{h}^{\mathrm{t}}_1, \dots, \mathbf{h}^{\mathrm{t}}_{T_t})$. Because the two sequences live on different time bases ($T_a \neq T_t$), an alignment step is required to place acoustic and textual representations on a common index before they can be fused, after which a sequence-to-sequence fusion module combines the aligned streams into a representation that feeds a shallow classification head.
 
 Rather than treating this pipeline as a single monolithic system optimised end to end, this thesis formulates it as the composition of six largely independent design axes, each of which can be varied while the others are held at controlled defaults. The modality axis $m$ determines whether the classifier consumes audio alone, text alone, their combination, or additionally a set of handcrafted acoustic features. The fusion axis $f$ selects the sequence-to-sequence architecture that combines the aligned acoustic and textual streams, drawn from a catalogue of seven families. The alignment axis $a$ fixes the scheme that maps acoustic frames onto text positions, comprising the word-to-token baseline of CogniAlign~\cite{ortiz2025cognialign} and the two token-to-token schemes proposed in this work. The Wav2Vec pooling axis $w$ chooses between the final encoder layer and a learnable weighted sum across layers. The layer-mixing axis $\ell$ refines that choice: in place of a single global set of layer weights, an adaptive mixer can learn to combine the encoder's layers per utterance, or even per token, so that the depth of representation is selected dynamically rather than fixed in advance. Finally, the feature-extractor axis $e$ varies the pretrained encoders themselves, substituting one audio or text backbone for another, to test how far the downstream trends depend on the specific self-supervised models that supply the two streams.
 
-A concrete system instance is thus parameterised by a tuple $(m, f, a, w, \ell, e)$, and the central empirical question is to estimate the marginal contribution of each axis, alone and in interaction, on the three tasks, rather than to identify a single best-performing run. The unit of comparison is therefore the \emph{technique}, not the implementation: two independent codebases replicate the fusion and Wav2Vec-pooling trends under a second software stack, and a third, configuration-unified implementation then consolidates the resulting techniques into a single model (Section~\ref{ssec:architecture}). Building on this decomposition, the experimental programme of Section~\ref{sec:experiments} traverses the axes in a staged sequence, and the synthesis of the strongest choice along each axis into a recommended hybrid architecture is taken up in the conclusions (Section~\ref{sec:conclusions}).
+A concrete system instance is thus parameterised by a tuple $(m, f, a, w, \ell, e)$, and the central empirical question is to estimate the marginal contribution of each axis, alone and in interaction, on the three tasks, rather than to identify a single best-performing run. The unit of comparison is therefore the \emph{technique}, not the implementation: two independent codebases replicate the fusion and Wav2Vec-pooling trends under a second software stack, and a third, configuration-unified implementation then consolidates the resulting techniques into a single model (Section~\ref{ssec:res_model}). Building on this decomposition, the experimental programme of Section~\ref{sec:experiments} traverses the axes in a staged sequence, and the synthesis of the strongest choice along each axis into a recommended hybrid architecture is taken up in the conclusions (Section~\ref{sec:conclusions}).
 
 \subsection{Datasets and Preprocessing}
 \label{ssec:datasets}
@@ -159,59 +159,18 @@ Education (years)& $10.4\pm6.4$ & $12.6\pm5.9$ & $9.8\pm6.9$ \\
 
 The textual modality is derived from the audio rather than from gold manual transcripts, so that the pipeline reflects a realistic deployment in which only recordings are available. Each recording is first truncated to its initial forty seconds of speech, which approximates the effective input length of the alignment-based model and, on the SPIN data, avoids capturing the clinician speech that occasionally appears toward the end of an evaluation. The truncated audio is then transcribed automatically with Whisper, though the two stacks differ in configuration: the CogniAligned pipeline runs the Whisper \texttt{turbo} model offline to obtain transcripts together with the word-level timestamps its alignment step requires, whereas the SER pipeline reuses precomputed transcripts where they are available and falls back to the lightweight Whisper \texttt{tiny} model otherwise. The resulting transcript is tokenised by the text encoder before being aligned with the acoustic stream. Because recognition errors propagate into the textual representation, transcript quality is a genuine source of variance, particularly for the Spanish cohort and for the disfluent or aphasic speech characteristic of PPA; the experiments therefore treat the text modality as one ablatable input among several rather than as a noise-free signal.
 
-\subsection{System Architecture}
-\label{ssec:architecture}
+\subsection{System Modules}
+\label{ssec:modules}
 
-The model follows a two-stream design in which audio and text are embedded independently by frozen self-supervised encoders, aligned onto a common sequence index, combined by a sequence-to-sequence fusion module, and finally pooled and mapped to a task label by a shallow head (Figure~\ref{fig:system_architecture}). Each stage corresponds to one of the design axes introduced in Section~\ref{ssec:problem_formulation}: the encoders and their pooling fix the acoustic and textual representations, the alignment step determines how the two time bases are reconciled, and the fusion module determines how the aligned streams interact. The ablation programme depends on this separation: a single axis can be changed while the rest of the pipeline stays fixed.
+This section describes the building blocks of the pipeline and the options available for each, taken in the order data flows through the model: the audio and text branches that embed each stream into a sequence of vectors, the handcrafted acoustic features that enter as a third input, the alignment-and-fusion stage that places the two streams on a common index and combines them, and the shallow head that reads out a label. How a concrete system wires these modules together, and the three implementations in which they are realised, is taken up in the system-architecture section that follows (Section~\ref{ssec:architecture}).
 
-Both encoders are kept frozen throughout. This is a modelling choice, not a computational shortcut: freezing holds the trainable parameter count in the low millions, concentrates learning capacity in the fusion module under study, and reduces the risk of overfitting the small clinical cohorts. It has a practical payoff as well. Once the encoder outputs are deterministic, every embedding can be computed once and cached, and that cache is what makes a multi-axis grid of experiments tractable at all.
-
-The architecture is realised across three complementary implementations. CogniAligned and SER are the two \emph{primitive} stacks in which the individual techniques were developed and ablated: CogniAligned is the full pipeline and the only stack that implements subword token alignment, whereas SER operates on segment-level representations and serves to check whether the fusion and Wav2Vec-pooling trends reproduce under a second, independent implementation. The two stacks differ in their encoders and training schedule, so results are compared across them as directional agreement, not exact reproduction; this caveat applies wherever cross-stack figures are quoted in what follows. Building on both, \texttt{res\_model} is a third, configuration-driven implementation that consolidates these techniques into a single model: any combination of modality, fusion, alignment, Wav2Vec pooling, layer mixing, and feature extractor is selected from one configuration, so the strongest choices identified separately on the primitive stacks can be assembled and trained together in a controlled way. The primitive stacks carry the main ablation narrative; \texttt{res\_model} folds their findings into the unified model from which the recommended architecture is drawn (detailed below). That model is competitive with the primitive stacks across the three tasks without being uniformly the best on any single one. Its value lies in integration and deployment, not in a higher accuracy ceiling.
-
-\begin{figure}[ht]
-\centering
-\resizebox{\linewidth}{!}{%
-\begin{tikzpicture}[
-  font=\footnotesize, >=Stealth,
-  box/.style={draw, rounded corners, minimum height=10mm, text width=20mm, align=center, inner sep=2pt},
-  frozen/.style={box, fill=blue!8},
-  trained/.style={box, fill=orange!15},
-  io/.style={align=center, text width=16mm}
-]
-\node[io] (wav) at (0,0) {Raw waveform};
-\node[frozen] (w2v) at (2.7,0) {Wav2Vec~2.0\\(frozen)};
-\node[frozen] (pool) at (5.4,0) {Layer pooling\\/ mixer};
-\node[io] (txt) at (0,-2) {ASR transcript};
-\node[frozen] (bert) at (2.7,-2) {BERT-family\\(frozen)};
-\node[trained] (align) at (8.3,-1) {Alignment};
-\node[trained] (fus) at (11.0,-1) {Seq2seq\\fusion};
-\node[trained] (mp) at (13.7,-1) {Mean\\pool};
-\node[trained] (head) at (16.4,-1) {Shallow\\MLP head};
-\node[io] (lab) at (18.6,-1) {Label};
-\draw[->] (wav)--(w2v);
-\draw[->] (w2v)--(pool);
-\draw[->] (txt)--(bert);
-\draw[->] (pool.east) -- (align.west);
-\draw[->] (bert.east) -- (align.west);
-\draw[->] (align)--(fus);
-\draw[->] (fus)--(mp);
-\draw[->] (mp)--(head);
-\draw[->] (head)--(lab);
-\end{tikzpicture}%
-}
-\caption{End-to-end architecture used in this thesis: frozen Wav2Vec~2.0 and BERT-family encoders (blue) produce acoustic and textual sequences, which are placed on a common index by the alignment step, combined by the trainable sequence-to-sequence fusion module (orange), and mapped to a task label by a shallow head. Blue blocks are frozen, orange blocks are trained.}
-\label{fig:system_architecture}
-\end{figure}
-
-\subsubsection{Acoustic Encoder: Choice and Configuration}
+\subsubsection{Audio Branch: Encoder and Layer Pooling}
 \label{sssec:acoustic_encoder}
+\label{sssec:pooling}
 
 Audio is encoded by a frozen Wav2Vec~2.0 model~\cite{baevski2020wav2vec}, but the two stacks use different variants by design. CogniAligned uses the base configuration (\texttt{facebook/wav2vec2-base-960h}): a convolutional feature encoder maps the raw 16\,kHz waveform to latent frames at roughly 20\,ms resolution (about 50 frames per second), which a twelve-layer transformer context network then contextualises into 768-dimensional hidden states. This model has on the order of 95 million parameters and was trained on 960 hours of English read speech (LibriSpeech); it is therefore monolingual, and CogniAligned applies it unchanged to the Spanish cohorts as well. SER instead uses the cross-lingual XLSR-300M variant, a deeper encoder of roughly 300 million parameters whose twenty-four transformer layers produce 1024-dimensional states and which was pretrained on about 436{,}000 hours of unlabelled speech spanning 128 languages. The two audio encoders thus differ in depth, width, capacity, and language coverage, one more axis on which the two stacks are not matched.
 
-\subsubsection{Wav2Vec Pooling and Layer Mixing}
-\label{sssec:pooling}
-
-The encoder is used purely as a frozen feature extractor: its weights are never updated, and the frame-level sequence $\mathbf{H}^{\mathrm{a}}$ is read directly from the transformer stack. How that sequence is formed is the Wav2Vec-pooling axis. The default, used as the controlled setting in every phase except the dedicated pooling study, takes the hidden states of the final transformer layer. The alternative learns one scalar weight per layer, normalises the weights with a softmax, and forms the representation as the weighted sum of all layer outputs (twelve layers for the base encoder in CogniAligned, twenty-four for XLSR-300M in SER). This is motivated by the well-documented observation that the layers of a self-supervised speech encoder specialise in different information (lower layers carry phonetic and speaker detail while higher layers carry more abstract content), so a learnable combination can expose cues that any single fixed layer discards. To further regularise training on the limited clinical data, the SER stack additionally applies on-the-fly acoustic data augmentation, including additive noise, reverberation, and speed perturbation, prior to feature extraction.
+Within this same audio branch, how the frame-level sequence is read out of the encoder's stack of layers is itself a design axis, the Wav2Vec-pooling axis. The encoder is used purely as a frozen feature extractor: its weights are never updated, and the sequence $\mathbf{H}^{\mathrm{a}}$ is taken directly from the transformer stack. The default, used as the controlled setting in every phase except the dedicated pooling study, takes the hidden states of the final transformer layer. The alternative learns one scalar weight per layer, normalises the weights with a softmax, and forms the representation as the weighted sum of all layer outputs (twelve layers for the base encoder in CogniAligned, twenty-four for XLSR-300M in SER). This is motivated by the well-documented observation that the layers of a self-supervised speech encoder specialise in different information (lower layers carry phonetic and speaker detail while higher layers carry more abstract content), so a learnable combination can expose cues that any single fixed layer discards. To further regularise training on the limited clinical data, the SER stack additionally applies on-the-fly acoustic data augmentation, including additive noise, reverberation, and speed perturbation, prior to feature extraction.
 
 The weighted sum just described shares a single set of layer weights across every recording. Making that combination learnable has a clear purpose: instead of committing in advance to the final layer, the model decides for itself which layers to read features from, putting weight wherever the task-relevant signal is strongest. In the recommended base configuration the weighting is a learnable softmax over all twelve transformer layers, and over all twenty-four for the deeper XLSR-300M encoder.
 
@@ -219,23 +178,47 @@ The most informative depth, however, need not be the same for every recording. A
 
 Mechanically, the mixer acts only on the audio branch and only before fusion, collapsing the layer axis into a single vector per time step; the text embeddings never pass through it. The sample mixer obtains its per-utterance weights by mean-pooling each layer over time and passing the result through a small linear scorer followed by the softmax, so the weighting reflects global properties of the recording; the token mixer instead scores every layer at each position, which amounts to a lightweight attention over layers. This layer mixing should not be confused with attention pooling: the mixer reduces the \emph{depth} (layer) axis before fusion, whereas attention pooling would reduce the \emph{time} axis after fusion, and the recommended configuration uses simple mean pooling for the latter.
 
-\subsubsection{Text Encoder: Choice and Configuration}
+\subsubsection{Text Branch: Encoder}
 
 Text is encoded by a frozen transformer from the BERT family~\cite{devlin2019bert}, which turns the tokenised transcript into a sequence of contextual token-level embeddings $\mathbf{H}^{\mathrm{t}}$. The two implementations again use different members of this family. CogniAligned uses DistilBERT~\cite{sanh2019distilbert}, a six-layer encoder distilled from BERT-base that retains most of its language-understanding capability at roughly half the parameters and inference cost, matching the original CogniAlign design. SER uses ModernBERT-base~\cite{warner2025modernbert}, a more recent encoder of about 149 million parameters trained on the order of two trillion tokens, with a native 8192-token context window, rotary positional embeddings, GeGLU activations, and an alternating local--global attention pattern that makes long-context encoding efficient.
 
 As with the acoustic encoder, the text encoder is frozen and its embeddings are precomputed. Holding it fixed within each stack ensures that the text representation is not a confound when fusion, alignment, or pooling is varied. The two stacks do use different text encoders, so this is yet another axis on which they are not matched.
 
-\subsubsection{Feature-Extractor Stacks}
-\label{sssec:feature_extractors}
+\subsubsection{Handcrafted Acoustic Features}
 
-The choice of pretrained backbone for each stream is itself a design decision rather than a fixed given, and constitutes the feature-extractor axis introduced in Section~\ref{ssec:problem_formulation}. The two primitive stacks already pair different encoders: CogniAligned combines DistilBERT~\cite{sanh2019distilbert} with the English Wav2Vec~2.0 base model, while SER combines ModernBERT~\cite{warner2025modernbert} with the cross-lingual XLSR-300M. These stacks, however, also differ in their ASR, alignment granularity, and training schedule, so reading the gap between them as an encoder comparison would confound the encoder with everything else that varies. A clean comparison requires changing one encoder at a time while holding the rest of the pipeline fixed.
+In addition to the learned embeddings, the pipeline can incorporate a set of 55 utterance-level handcrafted acoustic descriptors designed to capture fine-grained paralinguistic cues that are clinically interpretable but not easily recovered by a self-supervised encoder operating on the raw waveform. They are produced by a feature-extraction script adapted from NeuroXVocal~\cite{ntampakis2025neuroxvocal}, which demonstrated the set's effectiveness on the ADReSSo benchmark, and were extended to the SPIN cohort in our companion paper~\cite{esteve2025speechadppa}. Extraction relies on \texttt{librosa} together with Praat-based analysis via \texttt{parselmouth}; the resulting vector is computed once per recording and stored, so that the identical 55-feature set is reused across every experiment that enables it. The descriptors span the five groups listed in Table~\ref{tab:handcrafted}: temporal and pause statistics, acoustic--prosodic measures, voice-quality measures, spectral descriptors, and cepstral coefficients.
 
-This is what the unified \texttt{res\_model} implementation provides through a single-factor extractor ablation. Against a fixed recipe (bidirectional cross-attention fusion, word-to-token alignment, the weighted Wav2Vec stack with the per-utterance sample layer mixer, and word-timestamped CogniAligned transcripts), one component is swapped per run and every other factor is held constant. On the audio side the base encoder is replaced by XLSR-300M, to test whether a deeper cross-lingual model helps the Spanish cohorts; on the text side DistilBERT is replaced by ModernBERT and by the undistilled BERT-base~\cite{devlin2019bert}, contrasting a lightweight distilled encoder, a recent long-context one, and the original reference. Each variant is run on all three tasks under two random seeds to expose seed sensitivity. The candidates are deliberately drawn from different points of the design space: DistilBERT for its low cost and its role in the original CogniAlign design, ModernBERT for its modern architecture and long context, BERT-base as the undistilled baseline, and the English base versus cross-lingual XLSR audio encoders for the monolingual-versus-multilingual contrast that is most relevant once the same pipeline is applied to Spanish speech. The per-task outcomes, which prove markedly task-dependent, are reported with the experiments.
+\begin{table}[H]
+\centering
+\caption[Handcrafted acoustic features]{\footnotesize The five groups of handcrafted acoustic descriptors (55 features in total), extracted with \texttt{librosa} and Praat (\texttt{parselmouth}).}
+\label{tab:handcrafted}
+\footnotesize{
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Group} & \textbf{Descriptors} \\ \midrule
+Temporal \& pause   & Total speech duration, speech-to-pause ratio, number of pauses, \\
+                    & pause-duration statistics (mean, maximum, SD) \\
+Acoustic--prosodic  & Pitch (mean, SD, range), intensity, speaking rate, articulation rate \\
+Voice quality       & Local jitter, local shimmer, harmonics-to-noise ratio \\
+Spectral            & Spectral-centroid statistics, zero-crossing rate, formants F1--F3 (mean, SD) \\
+Cepstral            & First 13 MFCCs (mean, SD) \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
 
-\subsubsection{Cross-Modal Alignment}
+The five groups are grounded in the clinical phenomenology of the target disorders. Pause behaviour is the clearest case: a higher pause rate, longer pauses, and a lower speech-to-pause ratio are well-established markers of Alzheimer's disease, where they track the lexical-retrieval and speech-planning difficulties that accompany cognitive decline. Voice quality plays a complementary part, with jitter and shimmer registering the subtle phonatory instabilities that can appear before any overt symptom. Such descriptors earn a separate place for two reasons: they are explicit and clinically interpretable, and a self-supervised encoder offers no guarantee of preserving them. Pretrained to recover phonetic and lexical content, the encoder has no objective that obliges it to retain absolute timing or low-level voice-quality statistics, so it may discard precisely the cues a clinician would attend to.
+
+Before the features are used they are normalised, and the normalisation is computed with care to avoid leakage: each dimension is Z-score standardised using only the mean and standard deviation of the training split of the fold in question, never statistics pooled over the whole dataset.
+
+Integration follows a late-fusion design. The normalised 55-dimensional vector is first projected to the model's 768-dimensional hidden width, then combined with the multimodal stream at one of two late points, prepended as an additional token to the sequence that enters the fusion module, or concatenated to the already-pooled fixed-size embedding immediately before the classification head. Either way the descriptors join only after the self-supervised streams have been formed, so the fusion and cross-attention machinery still operate on the learned representations alone and the handcrafted cues act as an interpretable side-channel rather than something the attention has to disentangle from the waveform.
+
+The descriptors are ablated explicitly in the modality study, where the audio-plus-text-plus-features cell is compared against the audio-plus-text cell so that any contribution of the handcrafted features is measured against an otherwise identical model. Beyond that controlled comparison, the CogniAligned ablation grids keep the 55-feature vector enabled by default whenever the cohort's feature CSV is available, so the fusion, alignment, and pooling studies are run on top of the audio-plus-text-plus-features input rather than with the features removed.
+
+\subsubsection{Cross-Modal Alignment and Fusion}
 \label{sssec:alignment}
 
-Before the two streams can be fused they must be placed on a common sequence index, because the acoustic sequence is far longer than the token sequence ($T_a \gg T_t$). CogniAligned resolves this by precomputing an aligned tensor in which each text position is paired with a pooled acoustic representation, and the three alignment schemes differ in how acoustic frames are assigned to text positions. The word-to-token baseline, inherited from CogniAlign~\cite{ortiz2025cognialign}, uses the word-level timestamps produced by the ASR step to mean-pool the acoustic frames spanned by each spoken word into a single vector, which is then replicated at every subword token of that word. The two schemes proposed in this thesis operate one level finer, at the subword granularity produced by the text tokeniser. The \emph{uniform} scheme takes the frame span of each word and divides it evenly among the word's subword tokens, so that a word split into three tokens contributes three equal slices. The \emph{proportional} scheme instead divides the span in proportion to the character length of each subword token, on the assumption that longer subwords tend to occupy more of the spoken word and should therefore receive proportionally more acoustic frames. Both subword schemes yield a finer-grained audio--text correspondence than the word-level baseline, and the comparison among the three constitutes the alignment axis (Figure~\ref{fig:alignment_schemes}). SER does not align at the subword level: it fuses segment-level representations and therefore takes no part in the alignment ablation.
+Once both streams are embedded (and the handcrafted features prepared as a third input), they must be placed on a common sequence index before they can be combined; this module covers both stages, alignment then fusion. Alignment is required because the acoustic sequence is far longer than the token sequence ($T_a \gg T_t$). CogniAligned resolves this by precomputing an aligned tensor in which each text position is paired with a pooled acoustic representation, and the three alignment schemes differ in how acoustic frames are assigned to text positions. The word-to-token baseline, inherited from CogniAlign~\cite{ortiz2025cognialign}, uses the word-level timestamps produced by the ASR step to mean-pool the acoustic frames spanned by each spoken word into a single vector, which is then replicated at every subword token of that word. The two schemes proposed in this thesis operate one level finer, at the subword granularity produced by the text tokeniser. The \emph{uniform} scheme takes the frame span of each word and divides it evenly among the word's subword tokens, so that a word split into three tokens contributes three equal slices. The \emph{proportional} scheme instead divides the span in proportion to the character length of each subword token, on the assumption that longer subwords tend to occupy more of the spoken word and should therefore receive proportionally more acoustic frames. Both subword schemes yield a finer-grained audio--text correspondence than the word-level baseline, and the comparison among the three constitutes the alignment axis (Figure~\ref{fig:alignment_schemes}). SER does not align at the subword level: it fuses segment-level representations and therefore takes no part in the alignment ablation.
 
 \begin{figure}[ht]
 \centering
@@ -279,9 +262,7 @@ Before the two streams can be fused they must be placed on a common sequence ind
 \label{fig:alignment_schemes}
 \end{figure}
 
-\subsubsection{Fusion Module}
-
-Once the streams are aligned (or, in SER, taken at the segment level), the fusion module combines them into the joint representation that the head consumes. This is the axis the thesis varies most widely. Seven families are implemented and compared, summarised in Table~\ref{tab:fusion}, and they fall into three groups (Figures~\ref{fig:self_attention_fusion}--\ref{fig:mamba_fusion}) that embody three distinct hypotheses about how acoustic and textual evidence ought to interact.
+With the streams aligned (or, in SER, taken at the segment level), the second stage of this module is fusion: it combines them into the joint representation that the head consumes. This is the axis the thesis varies most widely. Seven families are implemented and compared, summarised in Table~\ref{tab:fusion}, and they fall into three groups (Figures~\ref{fig:self_attention_fusion}--\ref{fig:mamba_fusion}) that embody three distinct hypotheses about how acoustic and textual evidence ought to interact.
 
 The first group applies \textbf{self-attention} to the concatenated audio--text sequence, treating both modalities as one undifferentiated set of tokens in which every position may attend to every other. Its premise is that the relevant cross-modal structure will surface on its own once the model is given global context, with no architectural separation between the streams. Three variants probe how much machinery that premise actually needs. Plain self-attention uses a single attention map. Multi-head self-attention splits the computation into several parallel heads, each free to specialise in a different relation, one head might track how prosody aligns with content words while another tracks how pauses fall around syntactic boundaries. The transformer-with-positional-encoding variant goes further and injects sinusoidal position information inside a full transformer block~\cite{vaswani2017attention}, so that the order of frames and tokens is modelled explicitly. That last addition matters for speech in particular, where timing is itself diagnostic and a permutation-invariant model would throw away exactly the rhythm that distinguishes fluent from disfluent production.
 
@@ -336,42 +317,55 @@ State-space & Mamba & Selective state-space mixing in linear time \\
 }
 \end{table}
 
-\subsubsection{Handcrafted Feature Extraction and Integration}
-
-In addition to the learned embeddings, the pipeline can incorporate a set of 55 utterance-level handcrafted acoustic descriptors designed to capture fine-grained paralinguistic cues that are clinically interpretable but not easily recovered by a self-supervised encoder operating on the raw waveform. They are produced by a feature-extraction script adapted from NeuroXVocal~\cite{ntampakis2025neuroxvocal}, which demonstrated the set's effectiveness on the ADReSSo benchmark, and were extended to the SPIN cohort in our companion paper~\cite{esteve2025speechadppa}. Extraction relies on \texttt{librosa} together with Praat-based analysis via \texttt{parselmouth}; the resulting vector is computed once per recording and stored, so that the identical 55-feature set is reused across every experiment that enables it. The descriptors span the five groups listed in Table~\ref{tab:handcrafted}: temporal and pause statistics, acoustic--prosodic measures, voice-quality measures, spectral descriptors, and cepstral coefficients.
-
-\begin{table}[H]
-\centering
-\caption[Handcrafted acoustic features]{\footnotesize The five groups of handcrafted acoustic descriptors (55 features in total), extracted with \texttt{librosa} and Praat (\texttt{parselmouth}).}
-\label{tab:handcrafted}
-\footnotesize{
-\begin{tabular}{@{}ll@{}}
-\toprule
-\textbf{Group} & \textbf{Descriptors} \\ \midrule
-Temporal \& pause   & Total speech duration, speech-to-pause ratio, number of pauses, \\
-                    & pause-duration statistics (mean, maximum, SD) \\
-Acoustic--prosodic  & Pitch (mean, SD, range), intensity, speaking rate, articulation rate \\
-Voice quality       & Local jitter, local shimmer, harmonics-to-noise ratio \\
-Spectral            & Spectral-centroid statistics, zero-crossing rate, formants F1--F3 (mean, SD) \\
-Cepstral            & First 13 MFCCs (mean, SD) \\
-\bottomrule
-\end{tabular}
-}
-\end{table}
-
-The five groups are grounded in the clinical phenomenology of the target disorders. Pause behaviour is the clearest case: a higher pause rate, longer pauses, and a lower speech-to-pause ratio are well-established markers of Alzheimer's disease, where they track the lexical-retrieval and speech-planning difficulties that accompany cognitive decline. Voice quality plays a complementary part, with jitter and shimmer registering the subtle phonatory instabilities that can appear before any overt symptom. Such descriptors earn a separate place for two reasons: they are explicit and clinically interpretable, and a self-supervised encoder offers no guarantee of preserving them. Pretrained to recover phonetic and lexical content, the encoder has no objective that obliges it to retain absolute timing or low-level voice-quality statistics, so it may discard precisely the cues a clinician would attend to.
-
-Before the features are used they are normalised, and the normalisation is computed with care to avoid leakage: each dimension is Z-score standardised using only the mean and standard deviation of the training split of the fold in question, never statistics pooled over the whole dataset.
-
-Integration follows a late-fusion design. The normalised 55-dimensional vector is first projected to the model's 768-dimensional hidden width, then combined with the multimodal stream at one of two late points, prepended as an additional token to the sequence that enters the fusion module, or concatenated to the already-pooled fixed-size embedding immediately before the classification head. Either way the descriptors join only after the self-supervised streams have been formed, so the fusion and cross-attention machinery still operate on the learned representations alone and the handcrafted cues act as an interpretable side-channel rather than something the attention has to disentangle from the waveform.
-
-The descriptors are ablated explicitly in the modality study, where the audio-plus-text-plus-features cell is compared against the audio-plus-text cell so that any contribution of the handcrafted features is measured against an otherwise identical model. Beyond that controlled comparison, the CogniAligned ablation grids keep the 55-feature vector enabled by default whenever the cohort's feature CSV is available, so the fusion, alignment, and pooling studies are run on top of the audio-plus-text-plus-features input rather than with the features removed.
-
 \subsubsection{Classification Heads}
 
 The fused sequence is reduced to a single fixed-size vector by a pooling operation (mean pooling in CogniAligned and learned attention pooling in SER), and this vector is passed to a small multi-layer perceptron that outputs the class logits, trained with a cross-entropy objective. The head is kept intentionally shallow so that the bulk of the modelling capacity lies in the frozen encoders and the fusion module under study; this keeps the trainable parameter count low and makes the comparison between fusion families fair, since differences in accuracy can then be attributed to the fusion mechanism rather than to head capacity. The output layer follows the task, with two units for the binary AD and amyloid-$\beta$ tasks and three for PPA variant classification. All three targets in this thesis are categorical, so the head is always a classifier; the same design would extend directly to a regression target (for instance a continuous amyloid burden rather than a binary status) by replacing the final layer with a single linear unit and the cross-entropy objective with a regression loss, a possibility noted here only to delimit the scope of the present work.
 
-\subsection{Unified Implementation: \texttt{res\_model}}
+\subsection{System Architecture}
+\label{ssec:architecture}
+
+The model follows a two-stream design in which audio and text are embedded independently by frozen self-supervised encoders, aligned onto a common sequence index, combined by a sequence-to-sequence fusion module, and finally pooled and mapped to a task label by a shallow head (Figure~\ref{fig:system_architecture}). Each stage is one of the modules described in Section~\ref{ssec:modules} and corresponds to one of the design axes introduced in Section~\ref{ssec:problem_formulation}: the encoders and their pooling fix the acoustic and textual representations, the alignment step determines how the two time bases are reconciled, and the fusion module determines how the aligned streams interact. The ablation programme depends on this separation: a single axis can be changed while the rest of the pipeline stays fixed.
+
+Both encoders are kept frozen throughout. This is a modelling choice, not a computational shortcut: freezing holds the trainable parameter count in the low millions, concentrates learning capacity in the fusion module under study, and reduces the risk of overfitting the small clinical cohorts. It has a practical payoff as well. Once the encoder outputs are deterministic, every embedding can be computed once and cached, and that cache is what makes a multi-axis grid of experiments tractable at all.
+
+\begin{figure}[ht]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  font=\footnotesize, >=Stealth,
+  box/.style={draw, rounded corners, minimum height=10mm, text width=20mm, align=center, inner sep=2pt},
+  frozen/.style={box, fill=blue!8},
+  trained/.style={box, fill=orange!15},
+  io/.style={align=center, text width=16mm}
+]
+\node[io] (wav) at (0,0) {Raw waveform};
+\node[frozen] (w2v) at (2.7,0) {Wav2Vec~2.0\\(frozen)};
+\node[frozen] (pool) at (5.4,0) {Layer pooling\\/ mixer};
+\node[io] (txt) at (0,-2) {ASR transcript};
+\node[frozen] (bert) at (2.7,-2) {BERT-family\\(frozen)};
+\node[trained] (align) at (8.3,-1) {Alignment};
+\node[trained] (fus) at (11.0,-1) {Seq2seq\\fusion};
+\node[trained] (mp) at (13.7,-1) {Mean\\pool};
+\node[trained] (head) at (16.4,-1) {Shallow\\MLP head};
+\node[io] (lab) at (18.6,-1) {Label};
+\draw[->] (wav)--(w2v);
+\draw[->] (w2v)--(pool);
+\draw[->] (txt)--(bert);
+\draw[->] (pool.east) -- (align.west);
+\draw[->] (bert.east) -- (align.west);
+\draw[->] (align)--(fus);
+\draw[->] (fus)--(mp);
+\draw[->] (mp)--(head);
+\draw[->] (head)--(lab);
+\end{tikzpicture}%
+}
+\caption{End-to-end architecture used in this thesis: frozen Wav2Vec~2.0 and BERT-family encoders (blue) produce acoustic and textual sequences, which are placed on a common index by the alignment step, combined by the trainable sequence-to-sequence fusion module (orange), and mapped to a task label by a shallow head. Blue blocks are frozen, orange blocks are trained.}
+\label{fig:system_architecture}
+\end{figure}
+
+The architecture is realised across three complementary implementations. CogniAligned and SER are the two \emph{primitive} stacks in which the individual techniques were developed and ablated: CogniAligned is the full pipeline and the only stack that implements subword token alignment, whereas SER operates on segment-level representations and serves to check whether the fusion and Wav2Vec-pooling trends reproduce under a second, independent implementation. The two stacks pair different members of the audio and text families described in Section~\ref{ssec:modules}: CogniAligned combines DistilBERT~\cite{sanh2019distilbert} with the English Wav2Vec~2.0 base model, while SER combines ModernBERT~\cite{warner2025modernbert} with the cross-lingual XLSR-300M. Because they also differ in ASR and training schedule, results are compared across them as directional agreement, not exact reproduction; this caveat applies wherever cross-stack figures are quoted in what follows. The third implementation, \texttt{res\_model}, consolidates the techniques into a single configuration-driven model from which the recommended architecture is drawn; it is competitive with the primitive stacks across the three tasks without being uniformly the best on any single one, its value lying in integration and deployment rather than in a higher accuracy ceiling. It is described next.
+
+\subsubsection{Unified Implementation: \texttt{res\_model}}
 \label{ssec:res_model}
 
 The two primitive stacks established the trends of the individual axes, but each carries incidental design decisions, such as a fixed ASR model, alignment granularity, and training schedule, that make some comparisons impossible to isolate within a single stack. To remove these confounds and to assemble the strongest per-axis choices into one system, the techniques are re-implemented in \texttt{res\_model}, a configuration-driven trainer in which the modality, fusion family, alignment scheme, Wav2Vec pooling and layer mixer, and the audio and text encoders are all selected from a single configuration. Its results are reported by technique rather than by stack identity, since a given configuration no longer corresponds to ``CogniAligned'' or ``SER'' but to an explicit combination of choices. This unified implementation serves three purposes: it reproduces the main technique trends under one codebase, so that they no longer depend on cross-stack differences; it enables the controlled single-factor studies that the primitive stacks cannot express cleanly, namely the adaptive layer mixer of Section~\ref{sssec:pooling} and the encoder ablation of Section~\ref{sssec:feature_extractors}; and it provides the vehicle for the recommended architecture.
@@ -379,6 +373,11 @@ The two primitive stacks established the trends of the individual axes, but each
 For the per-task ablations reported in Section~\ref{sec:experiments}, \texttt{res\_model} holds a single \emph{stable recipe} and varies one axis at a time: a learnable weighted sum of Wav2Vec layers, mean time-pooling, bidirectional cross-attention fusion, and no handcrafted features, with the alignment left at each task's default. This is intentionally not the recipe of the legacy CogniAligned grids, whose controlled defaults instead read the final Wav2Vec layer and keep the handcrafted features enabled. The two programmes are read for their per-axis trends rather than for numerically identical cells, and every results table states the recipe behind it.
 
 That recommended architecture is the configuration the ablations point to, anchored on the English ADReSSo task. It pairs word-timestamped transcripts and a DistilBERT text encoder with the Wav2Vec~2.0 base audio encoder, reads the audio as a weighted stack of layers combined by the per-utterance sample mixer, aligns the streams word-to-token, fuses them with bidirectional cross-attention, and classifies a mean-pooled representation with a shallow head; the handcrafted acoustic features are left off by default and enabled only as an ablation. The bundle is deliberately literature-aligned: both its word-to-token alignment and its bidirectional cross-attention fusion follow CogniAlign. The two works disagree, though, on which fusion wins: CogniAlign reports a gated cross-attention variant as its strongest, whereas in this grid bidirectional cross-attention is the best family. It is chosen as the strongest configuration that stays stable across folds and seeds, not the single highest-scoring cell of any one run. As noted above, on the Spanish cohorts some of these choices change: the cross-lingual XLSR-300M audio encoder, in particular, can be preferable to the English base encoder, so the recommended stack is read as task-anchored rather than universal.
+
+\subsubsection{Feature Extractors: Single-Factor Encoder Ablation}
+\label{sssec:feature_extractors}
+
+The choice of pretrained backbone for each stream is itself a design axis, the feature-extractor axis introduced in Section~\ref{ssec:problem_formulation}. The two primitive stacks already pair different encoders, but they also differ in ASR, alignment granularity, and training schedule, so reading the gap between them as an encoder comparison would confound the encoder with everything else that varies. A clean comparison requires changing one encoder at a time while holding the rest of the pipeline fixed, which is what the unified \texttt{res\_model} implementation provides through a single-factor extractor ablation. Against a fixed recipe (bidirectional cross-attention fusion, word-to-token alignment, the weighted Wav2Vec stack with the per-utterance sample layer mixer, and word-timestamped CogniAligned transcripts), one component is swapped per run and every other factor is held constant. On the audio side the base encoder is replaced by XLSR-300M, to test whether a deeper cross-lingual model helps the Spanish cohorts; on the text side DistilBERT is replaced by ModernBERT and by the undistilled BERT-base~\cite{devlin2019bert}, contrasting a lightweight distilled encoder, a recent long-context one, and the original reference. Each variant is run on all three tasks under two random seeds to expose seed sensitivity. The candidates are deliberately drawn from different points of the design space: DistilBERT for its low cost and its role in the original CogniAlign design, ModernBERT for its modern architecture and long context, BERT-base as the undistilled baseline, and the English base versus cross-lingual XLSR audio encoders for the monolingual-versus-multilingual contrast that is most relevant once the same pipeline is applied to Spanish speech. The per-task outcomes, which prove markedly task-dependent, are reported with the experiments.
 
 \subsection{Training Protocol}
 \label{ssec:training}

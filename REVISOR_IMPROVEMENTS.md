@@ -238,7 +238,22 @@ Legend: **[verified]** checked against data/code · **[needs decision]** my inpu
 
 ---
 
-## E. State of the Art — reorder, fewer subsections
+## E. State of the Art — reorder, fewer subsections — ✅ DONE
+> Rewrote `state_of_the_art.tex`; new order matches the revisor skeleton:
+> (1) Speech-based assessment before deep learning [= AD prediction before DL; absorbs the
+> old "scalable biomarker" + shallow-classifier material and the classical PPA markers],
+> (2) Handcrafted acoustic descriptors [= Acoustic features; moved up],
+> (3) Deep learning for speech-based neurodegeneration detection [= AD prediction with DL;
+> Wav2Vec · text encoders · Multimodal fusion (the three mechanism subsubsections compressed
+> into one) · Cross-modal alignment · a DL-PPA closing paragraph],
+> (4) Benchmarks and datasets [= datasets in general; added a DementiaBank/other-languages
+> paragraph so it is "not only the ones we use"],
+> (5) Synthesis and positioning [kept].
+> Subsections 8 → 5. **Biological motivation moved to the introduction**: dropped the SOTA
+> bio subsection and added the "cues split across two channels → multimodal" sentence to
+> `introduction.tex` (the amyloid/PPA basics were already in the intro). All 38 citations
+> retained (verified by key-diff against git HEAD — zero dropped); 3 figures preserved.
+> Compiles clean (50pp, exit 0, no undefined cites/refs).
 
 > "State of the art section: bad order. Biological motivation maybe suits better on
 > introduction. Less subsections. Subsections (approx.) have to be: AD prediction before

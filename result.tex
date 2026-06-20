@@ -48,7 +48,9 @@ Naive combination of the two streams is not enough. Concatenating or averaging t
 \small
 \begin{tabular}{lccc}
 \toprule
-Input configuration & \textbf{Amyloid} & \textbf{PPA} & ADReSSo \\
+ & \multicolumn{2}{c}{\textbf{SPIN}} & \textbf{ADReSSo} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-4}
+Input configuration & \textbf{Amyloid} & \textbf{PPA} & AD \\
 \midrule
 Audio only            & 66.23 & \textbf{60.03} & 53.97 \\
 Text only             & \textbf{67.85} & 53.57 & \textbf{67.72} \\
@@ -72,7 +74,9 @@ The 55 librosa/Praat descriptors are an optional side-channel, and the ablation 
 \small
 \begin{tabular}{lccc}
 \toprule
-Acoustic features & \textbf{Amyloid} & \textbf{PPA} & ADReSSo \\
+ & \multicolumn{2}{c}{\textbf{SPIN}} & \textbf{ADReSSo} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-4}
+Acoustic features & \textbf{Amyloid} & \textbf{PPA} & AD \\
 \midrule
 None              & 78.60 & \textbf{72.52} & 86.94 \\
 Token integration & n/a$^{\ast}$ & n/a$^{\ast}$ & 86.94 \\
@@ -109,48 +113,15 @@ Fusion is the axis with the widest spread (Table~\ref{tab:res_fusion}, shown gra
 \addplot[fill=blue!55,draw=blue!55] coordinates {(Concat,64.12)(Mean,64.12)(Self-attn,61.26)(Transf.+PE,78.05)(MH self-attn,75.85)(Cross,81.00)(Gated cross,82.88)(Bi-cross,81.64)(Mamba,77.49)};
 \addplot[fill=orange!75,draw=orange!75] coordinates {(Concat,54.10)(Mean,54.10)(Self-attn,54.09)(Transf.+PE,59.04)(MH self-attn,66.66)(Cross,73.67)(Gated cross,73.46)(Bi-cross,72.43)(Mamba,52.57)};
 \addplot[fill=teal!65,draw=teal!65] coordinates {(Concat,66.83)(Mean,66.83)(Self-attn,68.65)(Transf.+PE,80.58)(MH self-attn,84.22)(Cross,86.34)(Gated cross,86.34)(Bi-cross,87.23)(Mamba,85.40)};
-\legend{Amyloid, PPA, ADReSSo}
+\legend{Amyloid, PPA, AD}
 \end{axis}
 \end{tikzpicture}%
 }
-\caption[Fusion-family accuracy across tasks]{Validation accuracy of the fusion families on the three tasks (values from Table~\ref{tab:res_fusion}). The cross-attention family leads on every task, while Mamba's drop to chance on PPA stands out as the clearest outlier.}
+\caption[Fusion-family accuracy across tasks]{Validation accuracy of the fusion families on the three tasks (values from Table~\ref{tab:res_fusion}). The cross-attention family leads on every task, while Mamba's drop to chance on PPA stands out as the clearest outlier. Abbreviations: \emph{Concat}~=~concatenation, \emph{Mean}~=~element-wise mean (both non-sequential baselines); \emph{Self-attn}~=~self-attention, \emph{MH self-attn}~=~multi-head self-attention, \emph{Transf.+PE}~=~transformer with positional encoding; \emph{Cross}~=~cross-attention, \emph{Gated cross}~=~gated cross-attention, \emph{Bi-cross}~=~bidirectional cross-attention; \emph{Mamba}~=~selective state-space fusion.}
 \label{fig:res_fusion_bar}
 \end{figure}
 
-This ranking is the main trend the second, independent SER stack was built to check, and it survives the change of implementation. In the legacy fusion grid the cross-attention and Mamba families again lead within SER (bidirectional cross-attention reaches 85.21\% validation on ADReSSo, for instance), even though SER uses different encoders, a different ASR path, and a shorter training schedule. The absolute numbers diverge between the two stacks, which are not a controlled head-to-head, but the ordering of fusion families holds, and reproducing that ordering twice is the whole point of running it twice. The stacks also differ starkly in inference cost. Because CogniAligned reads precomputed token-aligned tensors while the SER timings include the encoders in the loop, per-sample inference differs by more than two orders of magnitude: sub-millisecond against a couple of hundred milliseconds (Figure~\ref{fig:res_compute}). That gap is a property of the embedding cache, not of the fusion mechanism, and it is what makes a multi-axis grid affordable in the first place.
-
-\begin{figure}[htbp]
-\centering
-\resizebox{\linewidth}{!}{%
-\begin{tikzpicture}
-\begin{axis}[
-    width=\linewidth, height=7cm,
-    xlabel={Per-sample validation inference time (ms)},
-    ylabel={Validation accuracy (\%)},
-    xmin=-0.1, xmax=2.0, ymin=73, ymax=90,
-    ymajorgrids, grid style={gray!20},
-    scatter/classes={a={mark=*,blue!60}},
-]
-\addplot[
-    scatter, only marks, mark=*, mark size=2.4pt,
-    point meta=explicit symbolic,
-    nodes near coords, nodes near coords align={anchor=west},
-    every node near coord/.append style={font=\scriptsize},
-] coordinates {
-    (1.06,75.70) [Self-attn]
-    (0.05,75.66) [MH self-attn]
-    (1.68,83.01) [Transf.+PE]
-    (0.40,86.63) [Cross]
-    (0.64,86.61) [Gated cross]
-    (0.59,84.79) [Bi-cross]
-    (0.96,88.44) [Mamba]
-};
-\end{axis}
-\end{tikzpicture}%
-}
-\caption[Accuracy versus inference time]{Validation accuracy against per-sample inference time for the fusion families in the precomputed-embedding (CogniAligned) pipeline (fusion study, ADReSSo). Cross-attention pairs high accuracy with low cost; every family stays under two milliseconds because the encoder outputs are cached, whereas running the encoders in the loop raises per-sample cost by roughly two orders of magnitude.}
-\label{fig:res_compute}
-\end{figure}
+This ranking is the main trend the second, independent SER stack was built to check, and it survives the change of implementation. In the legacy fusion grid the cross-attention and Mamba families again lead within SER (bidirectional cross-attention reaches 85.21\% validation on ADReSSo, for instance), even though SER uses different encoders, a different ASR path, and a shorter training schedule. The absolute numbers diverge between the two stacks, which are not a controlled head-to-head, but the ordering of fusion families holds, and reproducing that ordering twice is the whole point of running it twice. Inference cost is not a discriminating factor among the families: with the encoder outputs precomputed and cached, every fusion variant runs in well under a millisecond per sample, so the choice is driven by accuracy alone.
 
 \begin{table}[htbp]
 \centering
@@ -159,7 +130,9 @@ This ranking is the main trend the second, independent SER stack was built to ch
 \small
 \begin{tabular}{lccc}
 \toprule
-Fusion technique & \textbf{Amyloid} & \textbf{PPA} & ADReSSo \\
+ & \multicolumn{2}{c}{\textbf{SPIN}} & \textbf{ADReSSo} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-4}
+Fusion technique & \textbf{Amyloid} & \textbf{PPA} & AD \\
 \midrule
 Concatenation                 & 64.12 & 54.10 & 66.83 \\
 Element-wise mean             & 64.12 & 54.10 & 66.83 \\
@@ -216,7 +189,9 @@ The adaptive layer mixer, evaluated only in the unified implementation, sharpens
 \small
 \begin{tabular}{lccc}
 \toprule
-Pooling & \textbf{Amyloid} & \textbf{PPA} & ADReSSo \\
+ & \multicolumn{2}{c}{\textbf{SPIN}} & \textbf{ADReSSo} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-4}
+Pooling & \textbf{Amyloid} & \textbf{PPA} & AD \\
 \midrule
 Final layer     & \textbf{80.75} & \textbf{74.95} & 86.32 \\
 Weighted layers & 80.75 & 72.43 & \textbf{86.64} \\
@@ -240,7 +215,9 @@ The larger effect appears in the configuration where it should: the legacy align
 \small
 \begin{tabular}{llccc}
 \toprule
-Alignment & Source & \textbf{Amyloid} & \textbf{PPA} & ADReSSo \\
+ & & \multicolumn{2}{c}{\textbf{SPIN}} & \textbf{ADReSSo} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-5}
+Alignment & Source & \textbf{Amyloid} & \textbf{PPA} & AD \\
 \midrule
 word$\rightarrow$token        & CogniAlign  & \textbf{81.64} & 72.43 & \textbf{86.32} \\
 tok$\rightarrow$tok (uniform) & This thesis & 79.79 & 72.43 & 86.02 \\
@@ -263,7 +240,9 @@ The last axis swaps the pretrained encoders one at a time (Table~\ref{tab:res_en
 \small
 \begin{tabular}{lllccc}
 \toprule
-Variant & Text encoder & Audio encoder & \textbf{Amyloid} & \textbf{PPA} & ADReSSo \\
+ & & & \multicolumn{2}{c}{\textbf{SPIN}} & \textbf{ADReSSo} \\
+\cmidrule(lr){4-5}\cmidrule(lr){6-6}
+Variant & Text encoder & Audio encoder & \textbf{Amyloid} & \textbf{PPA} & AD \\
 \midrule
 Baseline              & DistilBERT & Wav2Vec2 base-960h & 79.84 & 69.94 & \textbf{86.12} \\
 Audio $\to$ XLSR      & DistilBERT & Wav2Vec2 XLSR-300M & \textbf{81.40} & 71.68 & 80.37 \\
@@ -291,7 +270,7 @@ Task & Best technique stack & Val.\ acc.\ (\%) & Test acc.\ (\%) \\
 \midrule
 \textbf{Amyloid (SPIN)} & bicross, tok$\rightarrow$tok (char), final Wv, $+$AF & \textbf{83.90}$^{a}$ & n/a \\
 \textbf{PPA (SPIN)}     & bicross, tok$\rightarrow$tok (uniform), final Wv & \textbf{74.95} & n/a \\
-ADReSSo (ref.)          & Mamba, word$\rightarrow$token, final Wv & 88.44 & 83.10$^{b}$ \\
+AD (ADReSSo, ref.)      & Mamba, word$\rightarrow$token, final Wv & 88.44 & 83.10$^{b}$ \\
 \bottomrule
 \end{tabular}
 

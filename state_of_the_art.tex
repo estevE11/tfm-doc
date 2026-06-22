@@ -42,13 +42,6 @@ This layered organisation has practical implications for downstream tasks, which
 Two configurations of this model are relevant to the present work. The English \texttt{base-960h} model, trained on read English speech, is one; the multilingual XLSR-300M variant, which extends the same framework to around 436{,}000 hours of speech spanning 128 languages, is the other, and its cross-lingual pre-training makes it better suited to scenarios where labelled pathological speech is scarce in any individual language, such as the Spanish cohorts studied here. The thesis employs both as frozen feature extractors and compares them directly in a controlled encoder ablation, since the more powerful multilingual model is not guaranteed to win once the downstream task is fixed.
 Related self-supervised models, notably HuBERT~\cite{hsu2021hubert} and WavLM~\cite{chen2022wavlm}, pursue analogous representation objectives through masked-prediction and denoising tasks respectively, but are not employed in this thesis.
 
-\begin{figure}[ht]
-\centering
-\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
-\caption{Architecture of the Wav2Vec~2.0 self-supervised speech encoder.}
-\label{fig:wav2vec_architecture}
-\end{figure}
-
 \subsubsection{Contextual text encoders}
 
 On the text side, the BERT family of encoder-only transformer models~\cite{devlin2019bert} learns bidirectional contextual embeddings through masked language modelling: random tokens in the input are masked, and the model is trained to predict them from surrounding context.
@@ -110,10 +103,10 @@ Intermediate fusion, the paradigm most relevant to this thesis, processes both m
 \label{fig:fusion_paradigms}
 \end{figure}
 
-Within intermediate fusion, the seq2seq layer can take several forms, which the thesis later treats as a design axis in its own right.
-\textbf{Self-attention fusion} concatenates embeddings from both modalities into a single sequence and processes them with a transformer self-attention layer~\cite{vaswani2017attention}, allowing every position to attend to every other regardless of modality origin; multi-head variants distribute this across parallel subspaces, and adding explicit positional encodings (sinusoidal or learned) supplies ordering information that helps preserve temporal structure and modality boundaries.
-\textbf{Cross-attention} introduces directionality: one modality supplies the queries while the other provides keys and values, producing representations of the query modality enriched with information from the other. Gated cross-attention extends this with a learned gate, typically a sigmoid-activated linear projection, that scales the cross-attended output element-wise so the network can suppress uninformative cross-modal contributions per dimension; bidirectional cross-attention runs both directions at once (audio queries text, text queries audio) and merges the two enriched representations.
-\textbf{Selective state-space models} offer an alternative to attention entirely. The Mamba architecture~\cite{gu2023mamba} processes the concatenated audio--text sequence through a state-space layer that maintains a compressed hidden state updated recurrently along the time axis, with a learned, input-dependent selection mechanism controlling how much each position influences that state. Because the update is recurrent rather than pairwise, computational cost grows linearly with sequence length rather than quadratically as in full self-attention, a property that becomes practically relevant for long recordings of spontaneous speech.
+Within intermediate fusion, the seq2seq layer can take several forms, which the thesis later treats as a design axis in its own right; the families below are sketched only at the level needed to position the contribution, and the specific variants and their rationale are developed in the methodology (Section~\ref{sec:methodology}).
+\textbf{Self-attention} concatenates both modalities into one sequence and lets every position attend to every other regardless of origin~\cite{vaswani2017attention}, with multi-head and positional-encoding variants adding parallel subspaces and explicit ordering.
+\textbf{Cross-attention} instead introduces directionality, one modality querying the other; a gated variant weights the cross-modal contribution so an unreliable stream can be down-weighted, and a bidirectional variant exchanges information in both directions at once.
+\textbf{Selective state-space models} such as Mamba~\cite{gu2023mamba} drop attention altogether, mixing the sequence through a recurrent, input-dependent hidden state in linear rather than quadratic time, which is attractive for the long recordings of spontaneous speech.
 
 \subsubsection{Cross-modal alignment}
 

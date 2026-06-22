@@ -375,20 +375,13 @@ Both encoders are kept frozen throughout. This is a modelling choice, not a comp
 \label{fig:system_architecture}
 \end{figure}
 
-The architecture is realised across three complementary implementations. CogniAligned and the Double Multi-Head Attention Module (DMHAM) are the two \emph{primitive} stacks in which the individual techniques were developed and ablated (Figures~\ref{fig:cogni_arch} and~\ref{fig:dmham_arch}); DMHAM here denotes the second, independent codebase, not the multi-head self-attention fusion family of Table~\ref{tab:fusion}. CogniAligned is the full pipeline and the only stack that implements subword token alignment, whereas DMHAM operates on segment-level representations and serves to check whether the fusion and Wav2Vec-pooling trends reproduce under a second, independent implementation. The two stacks pair different audio and text encoders, as described in Section~\ref{ssec:modules}, and also differ in ASR and training schedule, so results are compared across them as directional agreement, not exact reproduction; this caveat applies wherever cross-stack figures are quoted in what follows. The third implementation, \texttt{res\_model}, consolidates the techniques into a single configuration-driven model from which the recommended architecture is drawn; it is competitive with the primitive stacks across the three tasks without being uniformly the best on any single one, its value lying in integration and deployment rather than in a higher accuracy ceiling. It is described next.
+The architecture is realised across three complementary implementations. CogniAligned and the Double Multi-Head Attention Module (DMHAM) are the two \emph{primitive} stacks in which the individual techniques were developed and ablated (Figure~\ref{fig:stack_arch}); DMHAM here denotes the second, independent codebase, not the multi-head self-attention fusion family of Table~\ref{tab:fusion}. CogniAligned is the full pipeline and the only stack that implements subword token alignment, whereas DMHAM operates on segment-level representations and serves to check whether the fusion and Wav2Vec-pooling trends reproduce under a second, independent implementation. The two stacks pair different audio and text encoders, as described in Section~\ref{ssec:modules}, and also differ in ASR and training schedule, so results are compared across them as directional agreement, not exact reproduction; this caveat applies wherever cross-stack figures are quoted in what follows. The third implementation, \texttt{res\_model}, consolidates the techniques into a single configuration-driven model from which the recommended architecture is drawn; it is competitive with the primitive stacks across the three tasks without being uniformly the best on any single one, its value lying in integration and deployment rather than in a higher accuracy ceiling. It is described next.
 
 \begin{figure}[ht]
 \centering
-\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
-\caption{Architecture of the CogniAligned stack: Whisper word-timestamped ASR, frozen Wav2Vec~2.0 base-960h and DistilBERT encoders, word-to-token (subword) alignment, a sequence-to-sequence fusion module, mean pooling, and a shallow classification head.}
-\label{fig:cogni_arch}
-\end{figure}
-
-\begin{figure}[ht]
-\centering
-\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
-\caption{Architecture of the DMHAM stack: frozen XLSR-300M and ModernBERT encoders operating on segment-level representations (no subword alignment), a sequence-to-sequence fusion module, attention pooling, and a shallow classification head.}
-\label{fig:dmham_arch}
+\includegraphics[width=\linewidth]{img/stack_architectures.pdf}
+\caption{Architectural comparison of the two primitive stacks. The left panel shows the Double Multi-Head Attention Module (DMHAM) system; the right panel shows the CogniAligned framework. The two are used throughout this thesis as independent implementations, so trends that reproduce across them are read as properties of the technique rather than of one codebase.}
+\label{fig:stack_arch}
 \end{figure}
 
 \subsubsection{Unified Implementation: \texttt{res\_model}}

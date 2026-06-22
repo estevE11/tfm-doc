@@ -375,47 +375,20 @@ Both encoders are kept frozen throughout. This is a modelling choice, not a comp
 \label{fig:system_architecture}
 \end{figure}
 
-The architecture is realised across three complementary implementations. CogniAligned and the Double Multi-Head Attention Module (DMHAM) are the two \emph{primitive} stacks in which the individual techniques were developed and ablated (Figure~\ref{fig:primitive_stacks}); DMHAM here denotes the second, independent codebase, not the multi-head self-attention fusion family of Table~\ref{tab:fusion}. CogniAligned is the full pipeline and the only stack that implements subword token alignment, whereas DMHAM operates on segment-level representations and serves to check whether the fusion and Wav2Vec-pooling trends reproduce under a second, independent implementation. The two stacks pair different audio and text encoders, as described in Section~\ref{ssec:modules}, and also differ in ASR and training schedule, so results are compared across them as directional agreement, not exact reproduction; this caveat applies wherever cross-stack figures are quoted in what follows. The third implementation, \texttt{res\_model}, consolidates the techniques into a single configuration-driven model from which the recommended architecture is drawn; it is competitive with the primitive stacks across the three tasks without being uniformly the best on any single one, its value lying in integration and deployment rather than in a higher accuracy ceiling. It is described next.
+The architecture is realised across three complementary implementations. CogniAligned and the Double Multi-Head Attention Module (DMHAM) are the two \emph{primitive} stacks in which the individual techniques were developed and ablated (Figures~\ref{fig:cogni_arch} and~\ref{fig:dmham_arch}); DMHAM here denotes the second, independent codebase, not the multi-head self-attention fusion family of Table~\ref{tab:fusion}. CogniAligned is the full pipeline and the only stack that implements subword token alignment, whereas DMHAM operates on segment-level representations and serves to check whether the fusion and Wav2Vec-pooling trends reproduce under a second, independent implementation. The two stacks pair different audio and text encoders, as described in Section~\ref{ssec:modules}, and also differ in ASR and training schedule, so results are compared across them as directional agreement, not exact reproduction; this caveat applies wherever cross-stack figures are quoted in what follows. The third implementation, \texttt{res\_model}, consolidates the techniques into a single configuration-driven model from which the recommended architecture is drawn; it is competitive with the primitive stacks across the three tasks without being uniformly the best on any single one, its value lying in integration and deployment rather than in a higher accuracy ceiling. It is described next.
 
 \begin{figure}[ht]
 \centering
-\resizebox{0.92\linewidth}{!}{%
-\begin{tikzpicture}[font=\footnotesize, >=Stealth,
-  bx/.style={draw, rounded corners, minimum height=8mm, text width=37mm, align=center, inner sep=3pt},
-  enc/.style={bx, fill=blue!8},
-  tr/.style={bx, fill=orange!15},
-  hl/.style={bx, fill=yellow!22, draw=orange!75, thick},
-  io/.style={align=center, text width=24mm},
-  ti/.style={font=\footnotesize\bfseries}
-]
-\def\cx{0}
-\def\dx{6.6}
-\node[ti] at (\cx,7.4) {CogniAligned};
-\node[ti] at (\dx,7.4) {DMHAM};
-% CogniAligned column
-\node[io] (cr) at (\cx,6.7) {Recording};
-\node[bx] (ca) at (\cx,5.5) {ASR: Whisper turbo\\(word timestamps)};
-\node[enc] (ce) at (\cx,4.1) {Wav2Vec2 base-960h $+$ DistilBERT\\(frozen)};
-\node[hl] (cl) at (\cx,2.7) {word$\rightarrow$token alignment\\(subword)};
-\node[tr] (cf) at (\cx,1.5) {Seq2seq fusion};
-\node[tr] (cp) at (\cx,0.5) {Mean pooling};
-\node[tr] (ch) at (\cx,-0.5) {Shallow MLP head};
-\node[io] (cb) at (\cx,-1.4) {Label};
-\draw[->] (cr)--(ca); \draw[->] (ca)--(ce); \draw[->] (ce)--(cl); \draw[->] (cl)--(cf); \draw[->] (cf)--(cp); \draw[->] (cp)--(ch); \draw[->] (ch)--(cb);
-% DMHAM column
-\node[io] (dr) at (\dx,6.7) {Recording};
-\node[bx] (da) at (\dx,5.5) {ASR: Whisper tiny\\/ precomputed};
-\node[enc] (de) at (\dx,4.1) {XLSR-300M $+$ ModernBERT\\(frozen)};
-\node[hl] (dl) at (\dx,2.7) {segment-level\\(no subword alignment)};
-\node[tr] (df) at (\dx,1.5) {Seq2seq fusion};
-\node[tr] (dp) at (\dx,0.5) {Attention pooling};
-\node[tr] (dh) at (\dx,-0.5) {Shallow MLP head};
-\node[io] (db) at (\dx,-1.4) {Label};
-\draw[->] (dr)--(da); \draw[->] (da)--(de); \draw[->] (de)--(dl); \draw[->] (dl)--(df); \draw[->] (df)--(dp); \draw[->] (dp)--(dh); \draw[->] (dh)--(db);
-\end{tikzpicture}%
-}
-\caption{The two primitive stacks share one two-stream skeleton but differ at the shaded stages: ASR configuration, the frozen audio and text encoders, the pooling, and most consequentially the alignment. CogniAligned aligns acoustic frames to subword tokens, whereas DMHAM fuses segment-level representations with no subword alignment. (For clarity the recording is drawn as a single input; in practice the audio encoder reads the waveform directly while ASR feeds only the text branch.) Because the stacks differ on these stages, cross-stack figures are read as directional rather than exact.}
-\label{fig:primitive_stacks}
+\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
+\caption{Architecture of the CogniAligned stack: Whisper word-timestamped ASR, frozen Wav2Vec~2.0 base-960h and DistilBERT encoders, word-to-token (subword) alignment, a sequence-to-sequence fusion module, mean pooling, and a shallow classification head.}
+\label{fig:cogni_arch}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
+\caption{Architecture of the DMHAM stack: frozen XLSR-300M and ModernBERT encoders operating on segment-level representations (no subword alignment), a sequence-to-sequence fusion module, attention pooling, and a shallow classification head.}
+\label{fig:dmham_arch}
 \end{figure}
 
 \subsubsection{Unified Implementation: \texttt{res\_model}}

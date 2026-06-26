@@ -152,8 +152,10 @@ This thesis builds on the CogniAlign alignment idea but generalises it along two
 \label{fig:cross_modal_alignment}
 \end{figure}
 
+\subsubsection{Harder tasks and architectural reuse}
+
 Beyond binary AD detection, deeper models have been pushed onto the harder multi-class PPA problem: large language models paired with curated linguistic measurements reach high accuracy in retrospective cohorts~\cite{rezaii2024ppallm}, and architectures trained jointly on acoustic and linguistic embeddings rival expert benchmarks on the variant-classification task~\cite{themistocleous2021automatic}. These results stay sensitive to sample size and label noise, and validation across accents, tasks, and cohorts remains an open problem~\cite{nevler2019validated}.
-Fusion architectures developed for speaker and emotion modelling, moreover, have been shown to transfer across paralinguistic tasks once domain regularisation is added~\cite{naini2025interspeechser}; that lineage is the reason this thesis is willing to port encoder stacks originally tuned on emotion corpora to clinical speech~\cite{esteve2025speechadppa}.
+Fusion architectures developed for speaker and emotion modelling, moreover, have been shown to generalise across paralinguistic tasks once domain regularisation is added~\cite{naini2025interspeechser}; that lineage is the reason this thesis reuses such a multimodal architecture, instantiated with general-purpose frozen speech and text encoders rather than any emotion-trained weights, for clinical speech~\cite{esteve2025speechadppa}.
 
 \subsection{Two multimodal frameworks: CogniAlign and DMHAM}
 \label{ssec:frameworks}

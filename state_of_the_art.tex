@@ -19,7 +19,7 @@ At the intersection with amyloid biology, connected-speech features associate wi
 \subsection{Handcrafted acoustic descriptors}
 
 Despite the strength of the self-supervised waveform encoders introduced below, clinically interpretable descriptors remain attractive because they tie predictions to measurable articulatory and phonatory parameters.
-These descriptors can be grouped into five broad categories: temporal and pause features (pause histograms, speech rate), prosodic contours (fundamental-frequency variation, intensity envelopes), voice-quality measures (jitter, shimmer, harmonics-to-noise ratio), spectral descriptors (formant tracks, spectral moments), and cepstral coefficients (mel-frequency cepstral coefficients).
+These descriptors span the families long used in speech-pathology research, from temporal and pause statistics to prosodic, voice-quality, spectral, and cepstral measures; the concrete 55-feature set this thesis uses, broken down by group, is specified in the methodology (Table~\ref{tab:handcrafted}).
 Pause-oriented statistics repeatedly emerge as salient in cognitive decline~\cite{imre2022temporal,zheng2024survey}; voice-quality perturbations may track neurogenic speech-motor-control deficits~\cite{rezaii2025voiceprints}.
 
 Open-source dementia-speech pipelines demonstrate competitive accuracy when coupling classical descriptors with modern backbones~\cite{ntampakis2025neuroxvocal}, supporting hybrid designs where auxiliary vectors augment attention pooling or concatenate immediately before classification~\cite{esteve2025speechadppa}.

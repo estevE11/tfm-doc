@@ -160,16 +160,7 @@ Fusion architectures developed for speaker and emotion modelling, moreover, have
 \subsection{Two multimodal frameworks: CogniAlign and DMHAM}
 \label{ssec:frameworks}
 
-The fusion and alignment ideas above come together in two existing multimodal frameworks that this thesis takes as its starting points and evaluates throughout (Figure~\ref{fig:stack_arch}). \textbf{CogniAlign}~\cite{ortiz2025cognialign} is the word-to-token aligned pipeline introduced above: Whisper supplies word-level timestamps, a frozen Wav2Vec~2.0 encoder and a DistilBERT text encoder produce the two streams, each word's acoustic frames are pooled and attached to its subword tokens, and the aligned streams are combined by cross-attention before a mean-pooled head. \textbf{DMHAM}, the Double Multi-Head Attention Multimodal system (not to be confused with the multi-head self-attention fusion family above), comes from the speaker- and emotion-recognition lineage just noted~\cite{naini2025interspeechser,esteve2025speechadppa}; it forgoes subword alignment, fusing segment-level representations from a cross-lingual XLSR-300M encoder and a ModernBERT text encoder and reading them out with attention pooling.
-
-The two frameworks share a two-stream skeleton but differ in their encoders, their ASR, and most consequentially in whether they align at the subword level at all. Rather than treat them as competing monolithic systems, this thesis decomposes them into the independent techniques surveyed above and studies each in isolation, the programme developed in the methodology chapter.
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=\linewidth]{img/stack_architectures.pdf}
-\caption{Architectural comparison of the two multimodal frameworks this thesis builds on. The left panel shows the Double Multi-Head Attention Multimodal (DMHAM) system; the right panel shows the CogniAlign framework. They share a two-stream skeleton but differ in their encoders, ASR, and alignment: CogniAlign aligns acoustic frames to subword tokens, whereas DMHAM fuses segment-level representations.}
-\label{fig:stack_arch}
-\end{figure}
+The fusion and alignment ideas above are instantiated in two existing multimodal frameworks that this thesis takes as its starting points: \textbf{CogniAlign}~\cite{ortiz2025cognialign}, a word-to-token aligned pipeline that combines a Wav2Vec~2.0 acoustic stream and a DistilBERT text stream by cross-attention, and \textbf{DMHAM}, the Double Multi-Head Attention Multimodal system~\cite{naini2025interspeechser,esteve2025speechadppa} from the speaker- and emotion-recognition lineage, which forgoes subword alignment and fuses segment-level representations from a cross-lingual XLSR-300M encoder and a ModernBERT text encoder. Rather than treat them as competing monolithic systems, this thesis decomposes them into the independent techniques surveyed above; both frameworks are presented in architectural detail, with their diagram, in the methodology chapter (Section~\ref{ssec:architecture}, Figure~\ref{fig:stack_arch}).
 
 \subsection{Benchmarks and datasets}
 

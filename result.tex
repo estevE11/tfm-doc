@@ -274,6 +274,57 @@ AD (ADReSSo, ref.)      & Mamba, word$\rightarrow$token, final Wv & 88.44 & 82.3
 {\footnotesize $^{a}$Best single run (seed 43, lr $1.5\times10^{-5}$, dropout 0.25) with the 55-d handcrafted acoustic features; the plain-recipe gated cross-attention reaches 82.88\%. $^{b}$Official ADReSSo test-dist under the full-train protocol. Mamba tops the ADReSSo grid, but the recommended cross-task default is bidirectional cross-attention with the per-utterance sample mixer (88.16\% cross-validated validation accuracy), preferred for its stability across all three tasks rather than its single-task peak.}
 \end{table}
 
+\subsection{Data augmentation}
+\label{ssec:res_augmentation}
+
+Within the cached augmentation protocol of Section~\ref{ssec:augmentation}, augmentation does not improve clean-validation accuracy. Using an augmented view at every training step ($p_{\mathrm{aug}}=1$) lowers the mean accuracy by 4 to 6~pp on the two SPIN tasks and by about 1~pp on ADReSSo. Mixing clean and augmented views recovers most of that loss: a 30\% augmentation share is the best setting found, matching clean accuracy on amyloid (83.85\% against 83.90\%) without exceeding it, and remaining 1 to 2~pp below clean on PPA and ADReSSo (Table~\ref{tab:res_aug}). The amyloid sweep (Figure~\ref{fig:res_aug}) shows the pattern clearly: accuracy stays close to the clean baseline under light mixing and falls sharply once augmentation dominates.
+
+This is consistent with augmentation acting on frozen, pre-computed features rather than on an encoder trained end to end, over small cohorts whose clean baselines are already tuned. The evaluation is on clean validation folds only; whether augmentation improves robustness on noisy or out-of-domain test audio, which is its usual purpose, is untested here and left to future work. The primary results therefore use the clean cached embeddings throughout.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.75\linewidth}{!}{%
+\begin{tikzpicture}
+\begin{axis}[
+    width=\linewidth, height=6cm,
+    xlabel={Augmentation share during training (\%)},
+    ylabel={Amyloid validation accuracy (\%)},
+    symbolic x coords={0,10,20,30,50,100},
+    xtick=data,
+    ymin=76, ymax=85,
+    enlarge x limits=0.08,
+    ymajorgrids, grid style={gray!20},
+    legend style={at={(0.5,1.02)},anchor=south,legend columns=2,font=\footnotesize,draw=none},
+]
+\addplot[blue!60, thick, mark=*, mark options={fill=blue!60}] coordinates {(0,83.90)(10,82.61)(20,83.51)(30,83.85)(50,82.59)(100,77.70)};
+\addplot[red, dashed, thick, mark=none] coordinates {(0,83.90)(100,83.90)};
+\legend{Mixed clean/aug training, Clean baseline (83.90)}
+\end{axis}
+\end{tikzpicture}%
+}
+\caption[Amyloid accuracy versus augmentation share]{Amyloid validation accuracy as the training augmentation share $p_{\mathrm{aug}}$ increases (\texttt{res\_model}, bidirectional cross-attention, character token-to-token alignment, final layer, with handcrafted features). Accuracy stays near the clean baseline (dashed) under light mixing and drops sharply once augmentation dominates; the 30\% share is the best setting and only matches, never beats, the clean baseline. Mean over seeds 43 and 3407, except the clean reference (seed 43).}
+\label{fig:res_aug}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption[Audio-augmentation effect per task]{Effect of cached audio augmentation per task (\texttt{res\_model}, recommended per-task configuration; for ADReSSo this is the bidirectional cross-attention stack at 88.16\%, not the Mamba grid leader). Mean validation accuracy (\%) over seeds 43 and 3407 (the amyloid clean reference is the seed-43 tuned run). \emph{Clean} = no augmentation; \emph{30\% mix} = best augmentation share; \emph{Always} = an augmented view every step.}
+\label{tab:res_aug}
+\small
+\begin{tabular}{lccc}
+\toprule
+Setting & \textbf{Amyloid} & \textbf{PPA} & \textbf{ADReSSo} \\
+\midrule
+Clean (no augmentation) & \textbf{83.90} & \textbf{74.95} & \textbf{88.16} \\
+30\% mix                & 83.85 & 73.70 & 86.96 \\
+Always (100\%)          & 77.70 & 70.91 & 87.23 \\
+\bottomrule
+\end{tabular}
+
+\vspace{2pt}
+{\footnotesize Augmentation never beats clean on validation; light mixing (30\%) recovers most of the loss on amyloid but leaves PPA and ADReSSo 1 to 2~pp below clean. Always-on augmentation degrades every task, most on the SPIN cohorts.}
+\end{table}
+
 \subsection{Error Analysis}
 \label{ssec:res_error}
 

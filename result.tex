@@ -3,9 +3,32 @@
 
 This chapter reports the experimental programme laid out in Section~\ref{sec:methodology}. It first walks the per-axis ablations one design axis at a time, establishing where accuracy comes from across the three tasks (Alzheimer's disease on ADReSSo, amyloid-$\beta$ status on SPIN, and PPA variant classification on the same SPIN subset), and then draws the strongest choices together into a best bundle for each task (Section~\ref{ssec:res_bytask}).
 
-Two conventions hold throughout. ADReSSo is the only cohort with an official held-out partition, so it is the only task for which a \texttt{test-dist} accuracy is quoted alongside cross-validated validation accuracy; the two Spanish tasks are reported on validation folds only, and no artificial test split is ever substituted for the one they lack. Every accuracy is a mean over the five cross-validation folds and the two training seeds (43 and 3407), given as a point estimate. No significance testing was carried out, a limitation revisited in the conclusions (Section~\ref{sec:conclusions}).
+Two conventions hold throughout. ADReSSo is the only cohort with an official held-out partition, so it is the only task for which a \texttt{test-dist} accuracy is quoted alongside cross-validated validation accuracy; the two Spanish tasks are reported on validation folds only, and no artificial test split is ever substituted for the one they lack. Every accuracy is a mean over the five cross-validation folds and the two training seeds (43 and 3407). Confidence intervals and paired significance tests are reported for the headline baselines and contrasts (Section~\ref{ssec:res_baselines}); they are not computed exhaustively for every cell, a limitation revisited in the conclusions (Section~\ref{sec:conclusions}).
 
 Unless a table says otherwise, the numbers come from the unified \texttt{res\_model} implementation run under a single stable recipe: a learnable weighted mixture across the Wav2Vec~2.0 transformer layers, mean pooling over time, and no handcrafted features, so that one axis moves at a time. The modality and feature-integration studies are the deliberate exception, using a neutral multi-head self-attention fusion with the final transformer layer and no alignment so that their comparison turns on the inputs alone, as their captions note. Where the older CogniAlign and DMHAM grids supply something the unified runs cannot, namely a second independent stack for the fusion and pooling trends or the legacy alignment sweep on amyloid, those numbers are brought in explicitly and labelled as such.
+
+\subsection{Baselines and significance}
+\label{ssec:res_baselines}
+
+Before the per-axis findings, two questions of statistical footing are settled: whether the models clear a trivial baseline, and which axes move accuracy by more than fold-level noise. Table~\ref{tab:res_baselines} pairs a majority-class and a random-chance baseline for each task with its best validated cell and a 95\% confidence interval over the cross-validation folds and seeds. Every task clears its majority baseline by a wide margin, $+29.6$, $+23.5$, and $+34.2$ percentage points on amyloid, PPA, and ADReSSo, each significant at $p<0.001$ under a paired test over folds.
+
+Paired tests on the two axes the thesis treats as its levers separate them cleanly. Fusion is a real lever: replacing naive concatenation with bidirectional cross-attention lifts accuracy by $+17.5$ points on amyloid and $+18.3$ on PPA, both at $p<0.001$ (Table~\ref{tab:res_fusion}). Alignment is not: the character-proportional token-to-token scheme differs from the word-to-token baseline by under a point on every task, and the difference is not significant ($p=0.082$, $0.369$, and $0.985$ on amyloid, PPA, and ADReSSo; Table~\ref{tab:res_alignment}). The subword alignment is therefore best read as an architectural and clarity refinement rather than an accuracy lever, consistent with the small, conditional gains seen in the alignment study. Significance is reported for these headline contrasts and baselines rather than exhaustively for every cell.
+
+\begin{table}[htbp]
+\centering
+\caption[Baselines and significance]{Trivial baselines and the best validated cell per task (\texttt{res\_model}). \emph{Majority} predicts the most frequent class; \emph{Chance} is uniform random. The best cell is the mean cross-validation accuracy with a 95\% confidence interval over folds and seeds, taken from the stable-recipe bidirectional cross-attention cells used for the paired tests; these are the controlled cells, not the tuned per-task bundles of Table~\ref{tab:res_best} (so amyloid is 81.64\% here against the 83.90\% tuned run, and ADReSSo is the 86.64\% weighted-layer cell rather than the 88.16\% sample-mixer one). $\Delta$ is the gain over majority; $^{\ast\ast\ast}$ marks $p<0.001$ under a paired test over folds.}
+\label{tab:res_baselines}
+\small
+\begin{tabular}{lcccc}
+\toprule
+Task & Majority & Chance & Best cell (95\% CI) & $\Delta$ vs majority \\
+\midrule
+Amyloid & 52.05 & 50.00 & 81.64 [78.8, 84.5] & $+29.6^{\ast\ast\ast}$ \\
+PPA     & 51.49 & 33.33 & 74.95 [70.4, 79.5] & $+23.5^{\ast\ast\ast}$ \\
+ADReSSo & 52.41 & 50.00 & 86.64 [80.5, 92.8] & $+34.2^{\ast\ast\ast}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Ablation findings}
 \label{ssec:res_ablation}
@@ -195,7 +218,7 @@ Weighted layers & 80.75 & 72.43 & \textbf{86.64} \\
 {\footnotesize Weighted layers help ADReSSo slightly; on SPIN the final layer is as good or better, especially on PPA.}
 \end{table}
 
-The next axis, audio--text alignment, is the thesis's own contribution, so it is examined under two lenses. Under the unified stable recipe (Table~\ref{tab:res_alignment}) the three schemes finish close together on all three tasks: character-proportional token-to-token is best on PPA (73.48\%), word-to-token edges amyloid (81.64\%), and on ADReSSo the two token-to-token schemes and the baseline are within a few tenths of a point. Subword alignment is therefore not a free lunch under every configuration, and that is worth stating plainly.
+The next axis, audio--text alignment, is the thesis's own contribution, so it is examined under two lenses. Under the unified stable recipe (Table~\ref{tab:res_alignment}) the three schemes finish close together on all three tasks: character-proportional token-to-token is best on PPA (73.48\%), word-to-token edges amyloid (81.64\%), and on ADReSSo the two token-to-token schemes and the baseline are within a few tenths of a point. Subword alignment is therefore not a free lunch under every configuration, and that is worth stating plainly; the difference from the word-to-token baseline is in fact not statistically significant on any task (Section~\ref{ssec:res_baselines}).
 
 The larger effect appears in the configuration where it should: the legacy alignment grid on amyloid, with handcrafted features and a final-layer audio representation. There, character-proportional alignment reaches 85.72\% against 85.13\% for word-to-token, with the uniform scheme matching the baseline at 85.13\%. The proportional allocation, which gives longer subwords proportionally more of the spoken word's acoustic frames, is the one refinement that helps, and amyloid is where it helps most. Read across both lenses, the honest summary is that token-to-token alignment is a worthwhile, low-cost refinement that pays off on specific task and feature combinations rather than a universal improvement, and that the character-proportional variant is the stronger of the two proposals.
 
@@ -328,4 +351,4 @@ Always (100\%)          & 77.70 & 70.91 & 87.23 \\
 \subsection{Error Analysis}
 \label{ssec:res_error}
 
-A detailed error analysis, including per-class confusion matrices for the three-class PPA task and an inspection of misclassified ADReSSo and amyloid cases, is left as future work. The present study reports point-estimate accuracies without confusion-level breakdowns or significance testing; characterising systematic failure modes, for example confusion between the logopenic and non-fluent PPA variants or the influence of ASR transcription errors on the text stream, would require the per-sample prediction logs and is identified here as a direction for subsequent analysis rather than reported with fabricated figures.
+A detailed error analysis, including per-class confusion matrices for the three-class PPA task and an inspection of misclassified ADReSSo and amyloid cases, is left as future work. The present study reports the headline contrasts with significance tests (Section~\ref{ssec:res_baselines}) but no per-class confusion-level breakdowns; characterising systematic failure modes, for example confusion between the logopenic and non-fluent PPA variants or the influence of ASR transcription errors on the text stream, would require the per-sample prediction logs and is identified here as a direction for subsequent analysis rather than reported with fabricated figures.

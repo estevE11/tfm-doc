@@ -99,7 +99,7 @@ Intermediate fusion, the paradigm most relevant to this thesis, processes both m
 \draw[->] (la)--(lca); \draw[->] (lt)--(lct); \draw[->] (lca)--(lcomb); \draw[->] (lct)--(lcomb); \draw[->] (lcomb)--(llab);
 \end{tikzpicture}%
 }
-\caption{The three multimodal fusion paradigms. Early fusion pools and concatenates the modality embeddings into one vector before a single classifier; late fusion trains a classifier per modality and combines their outputs; intermediate fusion, the paradigm used in this thesis, processes both sequences jointly through a sequence-to-sequence module before pooling and classification.}
+\caption{The three multimodal fusion paradigms.}
 \label{fig:fusion_paradigms}
 \end{figure}
 
@@ -148,7 +148,7 @@ This thesis builds on the CogniAlign alignment idea but generalises it along two
 \node[anchor=west] at (6.1,-1.8) {\scriptsize each word's frames pooled to its token};
 \end{tikzpicture}%
 }
-\caption{Cross-modal alignment between acoustic frames and text tokens, comparing unsynchronised input (top), where the two streams have no fixed correspondence, with word-to-token aligned input (bottom), where the frames spanned by each spoken word are pooled and attached to that word's token.}
+\caption{Cross-modal alignment: unsynchronised (top) versus word-to-token aligned (bottom).}
 \label{fig:cross_modal_alignment}
 \end{figure}
 

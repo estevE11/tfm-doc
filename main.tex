@@ -258,7 +258,7 @@ Once both streams are embedded (and the handcrafted features prepared as a third
 \draw[->] (0.9,-2.0)--(0.9,-2.3); \draw[->] (3.0,-2.0)--(3.0,-2.3); \draw[->] (4.8,-2.0)--(4.8,-2.3);
 \end{tikzpicture}%
 }
-\caption{Audio--text alignment schemes compared in this thesis, for one spoken word whose nine acoustic frames are split across three subword tokens of character lengths $3/4/2$. The CogniAlign word-to-token baseline mean-pools all frames into a single vector and replicates it to every token; the proposed \emph{uniform} scheme divides the frames evenly across the tokens; the proposed \emph{proportional} (char) scheme allocates frames in proportion to each token's character length.}
+\caption{The three audio--text alignment schemes compared in this thesis.}
 \label{fig:alignment_schemes}
 \end{figure}
 
@@ -324,7 +324,7 @@ The fused sequence is reduced to a single fixed-size vector by a pooling operati
 \subsection{System Architecture}
 \label{ssec:architecture}
 
-The model follows a two-stream design in which audio and text are embedded independently by frozen self-supervised encoders, aligned onto a common sequence index, combined by a sequence-to-sequence fusion module, and finally pooled and mapped to a task label by a shallow head (Figure~\ref{fig:system_architecture}). Each stage is one of the modules described in Section~\ref{ssec:modules} and corresponds to one of the design axes introduced in Section~\ref{ssec:problem_formulation}: the encoders and their pooling fix the acoustic and textual representations, the alignment step determines how the two time bases are reconciled, and the fusion module determines how the aligned streams interact. The ablation programme depends on this separation: a single axis can be changed while the rest of the pipeline stays fixed.
+The model follows a two-stream design in which audio and text are embedded independently by frozen self-supervised encoders, aligned onto a common sequence index, combined by a sequence-to-sequence fusion module, and finally pooled and mapped to a task label by a shallow head (Figure~\ref{fig:system_architecture}; the frozen encoders are drawn in blue, the trainable fusion module in orange, and the optional handcrafted-feature branch in teal, with the features joining either as an extra fusion token or by concatenation after pooling). Each stage is one of the modules described in Section~\ref{ssec:modules} and corresponds to one of the design axes introduced in Section~\ref{ssec:problem_formulation}: the encoders and their pooling fix the acoustic and textual representations, the alignment step determines how the two time bases are reconciled, and the fusion module determines how the aligned streams interact. The ablation programme depends on this separation: a single axis can be changed while the rest of the pipeline stays fixed.
 
 Both encoders are kept frozen throughout. This is a modelling choice, not a computational shortcut: freezing holds the trainable parameter count in the low millions, concentrates learning capacity in the fusion module under study, and reduces the risk of overfitting the small clinical cohorts. It has a practical payoff as well. Once the encoder outputs are deterministic, every embedding can be computed once and cached, and that cache is what makes a multi-axis grid of experiments tractable at all.
 
@@ -371,7 +371,7 @@ Both encoders are kept frozen throughout. This is a modelling choice, not a comp
   node[pos=0.25, anchor=west, font=\scriptsize] {concat (opt.)};
 \end{tikzpicture}%
 }
-\caption{End-to-end architecture used in this thesis: frozen Wav2Vec~2.0 and BERT-family encoders (blue) produce acoustic and textual sequences, which are placed on a common index by the alignment step, combined by the trainable sequence-to-sequence fusion module (orange), and mapped to a task label by a shallow head. A parallel branch extracts 55-dimensional handcrafted acoustic descriptors from the waveform (teal), projects them to the model width, and joins the pipeline either as an extra fusion token or by concatenation after pooling (dashed, optional). Blue blocks are frozen, orange blocks are trained.}
+\caption{End-to-end two-stream architecture used in this thesis.}
 \label{fig:system_architecture}
 \end{figure}
 
@@ -380,7 +380,7 @@ The architecture is realised across three complementary implementations, two of 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=\linewidth]{img/stack_architectures.pdf}
-\caption{Architectural comparison of the two multimodal frameworks this thesis builds on. The left panel shows the Double Multi-Head Attention Multimodal (DMHAM) system; the right panel shows the CogniAlign framework. They share a two-stream skeleton but differ in their encoders, ASR, and alignment: CogniAlign aligns acoustic frames to subword tokens, whereas DMHAM fuses segment-level representations.}
+\caption{The two frameworks compared: DMHAM (left) and CogniAlign (right).}
 \label{fig:stack_arch}
 \end{figure}
 
@@ -396,7 +396,7 @@ That recommended architecture is the configuration the ablations point to, ancho
 \begin{figure}[ht]
 \centering
 \fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
-\caption{The unified \texttt{res\_model} architecture and its recommended configuration. A configuration-driven two-stream model in which the modality, fusion family, alignment scheme, Wav2Vec pooling and layer mixer, and the audio and text encoders are each selectable from one configuration. The recommended stack reads the audio as a sample-mixed weighted Wav2Vec layer combination, aligns word-to-token, fuses by bidirectional cross-attention, and reduces to a label through a mean-pooled shallow head.}
+\caption{The unified \texttt{res\_model} architecture and its recommended configuration.}
 \label{fig:res_model}
 \end{figure}
 

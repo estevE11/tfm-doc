@@ -112,7 +112,7 @@ With the inputs settled, the central axis is how to fuse them. Fusion is the axi
 \end{axis}
 \end{tikzpicture}%
 }
-\caption[Fusion-family accuracy across tasks]{Validation accuracy of the fusion families on the three tasks (values from Table~\ref{tab:res_fusion}). The cross-attention family leads on every task, while Mamba's drop to chance on PPA stands out as the clearest outlier. Abbreviations: \emph{Concat}~=~concatenation, \emph{Mean}~=~element-wise mean (both non-sequential baselines); \emph{Self-attn}~=~self-attention, \emph{MH self-attn}~=~multi-head self-attention, \emph{Transf.+PE}~=~transformer with positional encoding; \emph{Cross}~=~cross-attention, \emph{Gated cross}~=~gated cross-attention, \emph{Bi-cross}~=~bidirectional cross-attention; \emph{Mamba}~=~selective state-space fusion.}
+\caption[Fusion-family accuracy across tasks]{Fusion-family validation accuracy by task (see Table~\ref{tab:res_fusion}).}
 \label{fig:res_fusion_bar}
 \end{figure}
 
@@ -147,7 +147,7 @@ Mamba                         & 77.49 & 52.57 & 85.40 \\
 
 With a fusion mechanism chosen, attention turns back to the audio branch. Two questions sit on it: whether to read the final Wav2Vec layer or a learnable mixture of all twelve, and, if a mixture, whether a single global set of weights is enough. The pooling table (Table~\ref{tab:res_wav2vec_pool}) gives a muted answer. A weighted layer stack helps ADReSSo slightly (86.64\% against 86.32\%), but on the Spanish tasks the final layer is as good or better, clearly so on PPA (74.95\% against 72.43\%). Depth, once a competent fusion is in place, buys little.
 
-The adaptive layer mixer, evaluated only in the unified implementation, sharpens the picture. Replacing the single global weight vector with a per-utterance \emph{sample} mixer at temperature 0.1 lifts ADReSSo from 87.23\% (global mixer, uniform initialisation) to \textbf{88.16\%}, and the learned weights are interpretable: the mixer concentrates on the top layer (layer~11, weight $\approx 0.20$ against the uniform 0.083) while keeping secondary mass on the lowest layer, and it varies those weights from one utterance to the next instead of settling on a single profile (Figure~\ref{fig:res_layer_mixer}). The finer \emph{token} mixer does not improve on this, so the per-utterance sample mixer is the variant carried into the recommendation: cheap, input-conditioned, and biased toward the upper layers where lexical content concentrates. This split is what the documented layer specialisation of a self-supervised speech encoder would predict: the lower layers (near layer~0) carry phonetic and speaker detail while the upper layers (near layer~11) carry the more abstract lexical content, so a mixer that puts its primary mass on layer~11 and secondary mass on layer~0 is reading the lexical signal while retaining a low-level acoustic channel, rather than committing to either extreme.
+The adaptive layer mixer, evaluated only in the unified implementation, sharpens the picture. Replacing the single global weight vector with a per-utterance \emph{sample} mixer at temperature 0.1 lifts ADReSSo from 87.23\% (global mixer, uniform initialisation) to \textbf{88.16\%}, and the learned weights are interpretable: the mixer concentrates on the top layer (layer~11, weight $\approx 0.20$ against the uniform 0.083) while keeping secondary mass on the lowest layer, and it varies those weights from one utterance to the next, with a mean per-utterance weight spread of $0.24$, instead of settling on a single profile (Figure~\ref{fig:res_layer_mixer}). The finer \emph{token} mixer does not improve on this, so the per-utterance sample mixer is the variant carried into the recommendation: cheap, input-conditioned, and biased toward the upper layers where lexical content concentrates. This split is what the documented layer specialisation of a self-supervised speech encoder would predict: the lower layers (near layer~0) carry phonetic and speaker detail while the upper layers (near layer~11) carry the more abstract lexical content, so a mixer that puts its primary mass on layer~11 and secondary mass on layer~0 is reading the lexical signal while retaining a low-level acoustic channel, rather than committing to either extreme.
 
 \begin{figure}[htbp]
 \centering
@@ -171,7 +171,7 @@ The adaptive layer mixer, evaluated only in the unified implementation, sharpens
 \end{axis}
 \end{tikzpicture}%
 }
-\caption[Learned layer-mixer weights]{Learned per-layer weights of the per-utterance sample mixer on ADReSSo (seed~43, $\tau = 0.1$, twelve Wav2Vec~2.0 layers). Weight concentrates on the uppermost layer (layer~11) and, secondarily, the lowest, both well above the uniform $1/12$ baseline (dashed); the mean per-utterance spread of these weights is $0.24$.}
+\caption[Learned layer-mixer weights]{Learned per-layer mixer weights on ADReSSo (seed~43).}
 \label{fig:res_layer_mixer}
 \end{figure}
 
@@ -302,7 +302,7 @@ This is consistent with augmentation acting on frozen, pre-computed features rat
 \end{axis}
 \end{tikzpicture}%
 }
-\caption[Amyloid accuracy versus augmentation share]{Amyloid validation accuracy as the training augmentation share $p_{\mathrm{aug}}$ increases (\texttt{res\_model}, bidirectional cross-attention, character token-to-token alignment, final layer, with handcrafted features). Accuracy stays near the clean baseline (dashed) under light mixing and drops sharply once augmentation dominates; the 30\% share is the best setting and only matches, never beats, the clean baseline. Mean over seeds 43 and 3407, except the clean reference (seed 43).}
+\caption[Amyloid accuracy versus augmentation share]{Amyloid validation accuracy versus the training augmentation share.}
 \label{fig:res_aug}
 \end{figure}
 

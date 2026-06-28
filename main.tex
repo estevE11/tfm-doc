@@ -268,7 +268,25 @@ The first group applies \textbf{self-attention} to the concatenated audio--text 
 
 \begin{figure}[ht]
 \centering
-\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
+\resizebox{0.92\linewidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize, >=Stealth,
+  audio/.style={draw,minimum size=5mm,inner sep=0pt,fill=blue!25},
+  txt/.style={draw,minimum size=5mm,inner sep=0pt,fill=green!30},
+  trained/.style={draw,rounded corners,align=center,inner sep=3pt,fill=orange!15},
+  lbl/.style={font=\scriptsize,align=center}]
+  \foreach \i in {0,1,2}{\node[audio] (a\i) at (0.6*\i,0) {};}
+  \foreach \i/\x in {0/1.8,1/2.4,2/3.0}{\node[txt] (t\i) at (\x,0) {};}
+  \node[lbl] at (1.5,-0.55) {concatenated audio $+$ text (one undifferentiated sequence)};
+  \node[trained,text width=27mm] (sa) at (1.5,1.7) {Self-attention\\(every position attends\\to every other)};
+  \foreach \i in {0,...,5}{\draw[->,gray!70] (0.6*\i,0.28) -- (sa.south);}
+  \foreach \i in {0,1,2}{\node[audio] (oa\i) at (0.6*\i,3.5) {};}
+  \foreach \i/\x in {0/1.8,1/2.4,2/3.0}{\node[txt] (ot\i) at (\x,3.5) {};}
+  \foreach \i in {0,...,5}{\draw[->,gray!70] (sa.north) -- (0.6*\i,3.22);}
+  \node[lbl] at (1.5,4.05) {contextualised sequence $\rightarrow$ pool $\rightarrow$ head};
+  \node[draw,dashed,rounded corners,align=left,font=\scriptsize,text width=44mm] at (7.2,1.7)
+     {\textbf{Variants:}\\ $\bullet$ multi-head: several parallel heads\\ $\bullet$ $+$ positional encoding: sinusoid added to the inputs};
+\end{tikzpicture}%
+}
 \caption{Self-attention fusion over the concatenated audio--text sequence.}
 \label{fig:self_attention_fusion}
 \end{figure}
@@ -277,7 +295,54 @@ The second group, \textbf{cross-attention} (Figure~\ref{fig:cross_attention_vari
 
 \begin{figure}[ht]
 \centering
-\fbox{\parbox{0.9\linewidth}{\vspace{5cm}\centering\small\textit{[Figure to be added]}\vspace{5cm}}}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize, >=Stealth,
+  audio/.style={draw,minimum size=7mm,inner sep=0pt,fill=blue!25},
+  txt/.style={draw,minimum size=7mm,inner sep=0pt,fill=green!30},
+  lbl/.style={font=\scriptsize,align=center},
+  ca/.style={draw,rounded corners,fill=orange!15,align=center,inner sep=3pt,text width=15mm,minimum height=7mm}]
+% (a) standard
+\begin{scope}[shift={(0,0)}]
+  \node[lbl,font=\small\bfseries] at (1.1,3.8) {(a) standard};
+  \node[audio,label=below:Audio] (aA) at (0,0) {};
+  \node[txt,label=below:Text]  (aT) at (2.2,0) {};
+  \node[ca] (aca) at (1.1,1.7) {Cross-attn};
+  \draw[->] (aA.north) |- (aca.west) node[pos=0.65,left,lbl]{K,V};
+  \draw[->] (aT.north) |- (aca.east) node[pos=0.65,right,lbl]{Q};
+  \draw[->] (aca.north) -- (1.1,2.7);
+  \node[lbl] at (1.1,3.1) {text enriched\\by audio};
+\end{scope}
+% (b) gated
+\begin{scope}[shift={(4.9,0)}]
+  \node[lbl,font=\small\bfseries] at (1.1,3.8) {(b) gated};
+  \node[audio,label=below:Audio] (bA) at (0,0) {};
+  \node[txt,label=below:Text]  (bT) at (2.2,0) {};
+  \node[ca] (bca) at (1.1,1.5) {Cross-attn};
+  \draw[->] (bA.north) |- (bca.west) node[pos=0.65,left,lbl]{K,V};
+  \draw[->] (bT.north) |- (bca.east) node[pos=0.65,right,lbl]{Q};
+  \node[draw,circle,inner sep=1pt] (g) at (1.1,2.7) {$\otimes$};
+  \node[lbl,left=0.6mm of g] {$\sigma$ gate};
+  \draw[->] (bca.north) -- (g.south);
+  \draw[->] (bT.east) -- (3.0,0) |- (g.east);
+  \draw[->] (g.north) -- (1.1,3.2);
+\end{scope}
+% (c) bidirectional
+\begin{scope}[shift={(9.8,0)}]
+  \node[lbl,font=\small\bfseries] at (2.0,3.8) {(c) bidirectional \textit{(default)}};
+  \node[audio,label=below:Audio] (cA) at (0,0) {};
+  \node[txt,label=below:Text]  (cT) at (4.0,0) {};
+  \node[ca] (ca1) at (0.8,2.2) {Cross-attn};
+  \node[ca] (ca2) at (3.2,2.2) {Cross-attn};
+  \node[ca,text width=12mm,minimum height=6mm] (mrg) at (2.0,3.15) {merge};
+  \draw[->] (cA.north) |- (ca1.west) node[pos=0.65,left,lbl]{Q};
+  \draw[->] (cT.north) |- (ca2.east) node[pos=0.65,right,lbl]{Q};
+  \draw[->] (cT.north) |- (2.0,1.05) -| (ca1.south) node[pos=0.2,below,lbl]{K,V};
+  \draw[->] (cA.north) |- (2.0,0.65) -| (ca2.south) node[pos=0.2,below,lbl]{K,V};
+  \draw[->] (ca1.north) |- (mrg.west);
+  \draw[->] (ca2.north) |- (mrg.east);
+\end{scope}
+\end{tikzpicture}%
+}
 \caption{Cross-attention fusion variants: (a)~standard, (b)~gated, and (c)~bidirectional.}
 \label{fig:cross_attention_variants}
 \end{figure}
@@ -286,7 +351,26 @@ The final family abandons attention altogether. The \textbf{Mamba} block~\cite{g
 
 \begin{figure}[ht]
 \centering
-\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
+\resizebox{0.85\linewidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize, >=Stealth,
+  st/.style={draw,rounded corners,fill=orange!15,minimum size=8mm},
+  lbl/.style={font=\scriptsize,align=center}]
+  \foreach \t in {1,...,4}{
+    \node[draw,minimum size=5mm,inner sep=0pt,fill=blue!18] (x\t) at (2*\t,0) {$x_{\t}$};
+    \node[draw,circle,inner sep=0.5pt,font=\scriptsize] (s\t) at (2*\t,1.0) {sel};
+    \node[st] (h\t) at (2*\t,2.1) {$h_{\t}$};
+    \node[draw,minimum size=5mm,inner sep=0pt,fill=green!25] (y\t) at (2*\t,3.3) {$y_{\t}$};
+    \draw[->] (x\t) -- (s\t);
+    \draw[->] (s\t) -- (h\t);
+    \draw[->] (h\t) -- (y\t);
+  }
+  \foreach \t [evaluate=\t as \n using int(\t+1)] in {1,2,3}{\draw[->] (h\t) -- (h\n);}
+  \node[lbl] at (5,-0.7) {inputs $x_t$ (concatenated audio--text sequence)};
+  \node[lbl] at (5,3.95) {outputs $y_t$};
+  \node[draw,dashed,rounded corners,align=left,font=\scriptsize,text width=56mm] at (5,5.1)
+    {Recurrent hidden state $h_t$ with \emph{input-dependent selection}; linear-time in sequence length, unlike attention's quadratic all-pairs cost. An evaluated comparator, not the recommended default.};
+\end{tikzpicture}%
+}
 \caption{Mamba selective state-space fusion applied to the concatenated audio--text sequence.}
 \label{fig:mamba_fusion}
 \end{figure}
@@ -395,7 +479,42 @@ That recommended architecture is the configuration the ablations point to, ancho
 
 \begin{figure}[ht]
 \centering
-\fbox{\parbox{0.9\linewidth}{\vspace{4cm}\centering\small\textit{[Figure to be added]}\vspace{4cm}}}
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize, >=Stealth,
+  enc/.style={draw,rounded corners,fill=blue!8,align=center,inner sep=3pt,minimum height=9mm,text width=30mm},
+  trn/.style={draw,rounded corners,fill=orange!15,align=center,inner sep=3pt,minimum height=9mm,text width=48mm},
+  trns/.style={draw,rounded corners,fill=orange!15,align=center,inner sep=3pt,minimum height=9mm,text width=30mm},
+  af/.style={draw,dashed,rounded corners,fill=teal!12,align=center,inner sep=3pt,minimum height=9mm,text width=26mm},
+  io/.style={align=center,font=\footnotesize}]
+% inputs (top)
+\node[io] (wav) at (0,8) {Audio waveform};
+\node[io] (tx)  at (4.4,8) {Transcript (ASR)};
+\node[io] (afin) at (8.6,8) {55-d handcrafted\\features (optional)};
+% encoders
+\node[enc] (w2v) at (0,6.4) {Frozen Wav2Vec~2.0\\\scriptsize\emph{e}: base-960h / XLSR};
+\node[enc] (bert) at (4.4,6.4) {Frozen text encoder\\\scriptsize\emph{e}: DistilBERT};
+\node[af]  (afp) at (8.6,6.4) {Linear projection};
+% audio readout
+\node[trns] (pool) at (0,4.8) {Layer pooling\\\scriptsize\emph{w,$\ell$}: weighted $+$ sample mixer};
+% alignment / fusion / head (centred stack)
+\node[trn] (align) at (2.2,3.3) {Alignment\\\scriptsize\emph{a}: word$\to$token (tuned per task)};
+\node[trn] (fus) at (2.2,1.8) {Fusion\\\scriptsize\emph{f}: bidirectional cross-attention};
+\node[trn] (head) at (2.2,0.5) {Mean pool $\rightarrow$ shallow MLP head};
+\node[io] (lab) at (2.2,-0.6) {Label};
+% arrows
+\draw[->] (wav)--(w2v); \draw[->] (tx)--(bert); \draw[->] (afin)--(afp);
+\draw[->] (w2v)--(pool);
+\draw[->] (pool.south) |- (align.west);
+\draw[->] (bert.south) |- (align.east);
+\draw[->] (align)--(fus);
+\draw[->,dashed] (afp.south) |- (fus.east);
+\draw[->] (fus)--(head);
+\draw[->] (head)--(lab);
+% legend (below the diagram, clear of the arrows)
+\node[align=left,font=\scriptsize,text width=96mm,anchor=north] at (4.3,-1.4)
+  {Configuration-driven: each axis $(m,f,a,w,\ell,e)$ is selected from one configuration. \textcolor{blue!55}{Blue} = frozen, \textcolor{orange}{orange} = trained, \textcolor{teal}{teal}/dashed = optional features. Recommended cross-task default shown; XLSR-300M audio on the Spanish cohorts.};
+\end{tikzpicture}%
+}
 \caption{The unified \texttt{res\_model} architecture and its recommended configuration.}
 \label{fig:res_model}
 \end{figure}

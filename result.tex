@@ -16,7 +16,7 @@ Paired tests on the two axes the thesis treats as its levers separate them clean
 
 \begin{table}[htbp]
 \centering
-\caption[Baselines and significance]{Trivial baselines and the best validated cell per task (\texttt{res\_model}). \emph{Majority} predicts the most frequent class; \emph{Chance} is uniform random. The best cell is the mean cross-validation accuracy with a 95\% confidence interval over folds and seeds, taken from the stable-recipe bidirectional cross-attention cells used for the paired tests; these are the controlled cells, not the tuned per-task bundles of Table~\ref{tab:res_best} (so amyloid is 81.64\% here against the 83.90\% tuned run, and ADReSSo is the 86.64\% weighted-layer cell rather than the 88.16\% sample-mixer one). $\Delta$ is the gain over majority; $^{\ast\ast\ast}$ marks $p<0.001$ under a paired test over folds.}
+\caption[Baselines and significance]{Trivial baselines and the best validated cell per task (\texttt{res\_model}). \emph{Majority} is the pooled proportion of the most frequent class over the cross-validation samples; \emph{Chance} is uniform random. The best cell is the mean cross-validation accuracy with a 95\% confidence interval over folds and seeds, taken from the stable-recipe bidirectional cross-attention cells used for the paired tests; these are the controlled cells, not the tuned per-task bundles of Table~\ref{tab:res_best} (so amyloid is 81.64\% here against the 83.90\% tuned run, and ADReSSo is the 86.64\% weighted-layer cell rather than the 88.16\% sample-mixer one). $\Delta$ is the gain over majority; $^{\ast\ast\ast}$ marks $p<0.001$ under a paired test over folds.}
 \label{tab:res_baselines}
 \small
 \begin{tabular}{lcccc}
